@@ -8,22 +8,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --maroon-950:#3d0a12;
-    --maroon:#6d1524;
-    --maroon-700:#8a2233;
-    --gold:#c79a3e;
-    --gold-soft:#e8d5a5;
-    --paper:#faf7f0;
-    --paper-dim:#f1ecdf;
-    --ink:#241a15;
-    --ink-soft:#6b5f54;
-    --line:#e2d9c6;
-    --line-strong:#c9bb9c;
-    --white:#fffdf9;
-    --green:#3f6b4f;
-    --green-soft:#e6efe7;
+    --green-950:#0d2b1c;
+    --green-800:#155235;
+    --green:#1f6b45;
+    --green-600:#2c8257;
+    --green-soft:#e5f3ea;
+    --green-line:#cfe7d9;
+    --gold:#c9a24a;
+    --paper:#f7faf8;
+    --paper-dim:#eef5f0;
+    --ink:#182420;
+    --ink-soft:#5c6b63;
+    --line:#dbe8e0;
+    --line-strong:#b8d2c2;
+    --white:#ffffff;
     --amber:#a8722e;
-    --amber-soft:#f5e8d3;
+    --amber-soft:#f6ecdb;
+    --red:#a8402e;
     --radius:3px;
   }
   *{box-sizing:border-box;}
@@ -41,7 +42,7 @@
   .shell{ min-height:100vh; display:flex; flex-direction:column; }
 
   .topbar{
-    background:var(--maroon-950);
+    background:var(--green-950);
     border-bottom:3px solid var(--gold);
     padding:0 28px;
     display:flex; align-items:center; justify-content:space-between;
@@ -51,23 +52,23 @@
   .brand{ display:flex; align-items:center; gap:12px; }
   .brand-mark{
     width:34px;height:34px; border-radius:50%;
-    background:radial-gradient(circle at 32% 30%, var(--gold-soft), var(--gold) 55%, #8a6a1f 100%);
+    background:radial-gradient(circle at 32% 30%, #e9f4ee, var(--green-600) 60%, var(--green-950) 100%);
     display:flex;align-items:center;justify-content:center;
-    font-family:'Fraunces',serif; font-weight:700; color:var(--maroon-950); font-size:16px;
+    font-family:'Fraunces',serif; font-weight:700; color:var(--green-950); font-size:16px;
     flex-shrink:0;
   }
   .brand-text{ color:var(--paper); line-height:1.15; }
   .brand-text .name{ font-family:'Fraunces',serif; font-weight:600; font-size:18px; letter-spacing:.2px; }
-  .brand-text .sub{ font-size:11.5px; color:#cbb98f; margin-top:1px; }
+  .brand-text .sub{ font-size:11.5px; color:#a9c9b7; margin-top:1px; }
 
   .tabs{ display:flex; gap:4px; }
   .tab-btn{
     appearance:none; border:none; background:transparent; cursor:pointer;
-    color:#d8cdb4; font-family:'Inter',sans-serif; font-size:14px; font-weight:500;
+    color:#c3dbcd; font-family:'Inter',sans-serif; font-size:14px; font-weight:500;
     padding:10px 16px; border-radius:2px 2px 0 0; position:relative; transition:color .15s;
   }
-  .tab-btn:hover{ color:var(--paper); }
-  .tab-btn.active{ color:var(--paper); }
+  .tab-btn:hover{ color:var(--white); }
+  .tab-btn.active{ color:var(--white); }
   .tab-btn.active::after{
     content:""; position:absolute; left:14px; right:14px; bottom:0; height:3px; background:var(--gold);
   }
@@ -82,16 +83,16 @@
     width:270px; flex-shrink:0; background:var(--paper-dim);
     border-right:1px solid var(--line); padding:22px 18px; overflow-y:auto;
   }
-  .chat-sidebar h3{ font-size:12.5px; text-transform:none; letter-spacing:.2px; color:var(--ink-soft); font-family:'Inter'; font-weight:600; margin:0 0 12px; }
+  .chat-sidebar h3{ font-size:12.5px; letter-spacing:.2px; color:var(--ink-soft); font-family:'Inter'; font-weight:600; margin:0 0 12px; }
   .quick-cat{ margin-bottom:22px; }
-  .quick-cat .cat-label{ font-size:11px; color:var(--maroon-700); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .quick-cat .cat-label{ font-size:11px; color:var(--green-800); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
   .quick-cat .cat-label .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);}
   .quick-q{
     display:block; width:100%; text-align:left; background:var(--white); border:1px solid var(--line);
     border-radius:var(--radius); padding:9px 11px; margin-bottom:6px; font-size:13px; color:var(--ink);
     cursor:pointer; line-height:1.35; transition:border-color .15s, background .15s;
   }
-  .quick-q:hover{ border-color:var(--maroon-700); background:#fff; }
+  .quick-q:hover{ border-color:var(--green-600); background:#fff; }
 
   .chat-main{ flex:1; display:flex; flex-direction:column; min-width:0; background:var(--white); }
   .chat-header{
@@ -99,12 +100,12 @@
   }
   .chat-header .who{ display:flex; align-items:center; gap:10px; }
   .chat-header .avatar{
-    width:32px;height:32px;border-radius:50%; background:var(--maroon); color:var(--paper);
+    width:32px;height:32px;border-radius:50%; background:var(--green); color:var(--white);
     display:flex;align-items:center;justify-content:center; font-family:'Fraunces'; font-weight:600; font-size:13px;
   }
   .chat-header .title{ font-size:14.5px; font-weight:600; }
-  .chat-header .status{ font-size:11.5px; color:var(--green); display:flex; align-items:center; gap:5px; }
-  .chat-header .status .dot{ width:6px;height:6px;border-radius:50%; background:var(--green); }
+  .chat-header .status{ font-size:11.5px; color:var(--green-600); display:flex; align-items:center; gap:5px; }
+  .chat-header .status .dot{ width:6px;height:6px;border-radius:50%; background:var(--green-600); }
   .role-switch{ display:flex; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
   .role-switch button{
     border:none; background:var(--white); padding:6px 14px; font-size:12px; font-family:'Inter'; cursor:pointer; color:var(--ink-soft);
@@ -116,22 +117,31 @@
   .msg.user{ align-self:flex-end; align-items:flex-end; }
   .msg.bot{ align-self:flex-start; align-items:flex-start; }
   .bubble{ padding:11px 15px; border-radius:14px; font-size:14.5px; line-height:1.5; }
-  .msg.user .bubble{ background:var(--maroon); color:var(--white); border-bottom-right-radius:3px; }
+  .msg.user .bubble{ background:var(--green); color:var(--white); border-bottom-right-radius:3px; }
   .msg.bot .bubble{ background:var(--paper-dim); color:var(--ink); border:1px solid var(--line); border-bottom-left-radius:3px; }
   .msg.escalated .bubble{ background:var(--amber-soft); border:1px solid var(--gold); color:var(--ink); }
   .meta-row{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--ink-soft); padding:0 3px; }
   .confidence-chip{
     font-family:'IBM Plex Mono'; font-size:10.5px; padding:2px 7px; border-radius:20px; border:1px solid var(--line-strong);
   }
-  .confidence-chip.high{ color:var(--green); border-color:#b7d2c0; background:var(--green-soft); }
+  .confidence-chip.high{ color:var(--green-600); border-color:var(--green-line); background:var(--green-soft); }
   .confidence-chip.low{ color:var(--amber); border-color:#e2c184; background:var(--amber-soft); }
-  .source-tag{ color:var(--maroon-700); }
+  .source-tag{ color:var(--green-800); }
 
-  .escalation-banner{
-    align-self:flex-start; max-width:66%; background:var(--paper); border:1px dashed var(--line-strong);
-    border-radius:10px; padding:12px 15px; font-size:13px; color:var(--ink-soft); display:flex; gap:10px; align-items:flex-start;
+  /* Form card inside chat */
+  .form-card{
+    background:var(--white); border:1px solid var(--green-line); border-radius:10px;
+    padding:14px 16px; max-width:340px; margin-top:2px;
   }
-  .escalation-banner .icon{ color:var(--amber); font-size:16px; line-height:1.2; }
+  .form-card .ft-title{ font-family:'Fraunces'; font-weight:600; font-size:14.5px; margin-bottom:2px; }
+  .form-card .ft-sub{ font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; }
+  .form-card ul{ margin:0 0 12px; padding-left:18px; }
+  .form-card li{ font-size:12.5px; color:var(--ink); margin-bottom:4px; }
+  .form-dl-btn{
+    background:var(--green); color:var(--white); border:none; border-radius:20px; padding:8px 16px;
+    font-size:12.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+  }
+  .form-dl-btn:hover{ background:var(--green-800); }
 
   .typing{ align-self:flex-start; display:flex; gap:4px; padding:12px 15px; }
   .typing span{ width:6px;height:6px;border-radius:50%; background:var(--line-strong); animation:blink 1.2s infinite; }
@@ -144,12 +154,12 @@
     flex:1; border:1px solid var(--line-strong); border-radius:24px; padding:12px 18px; font-size:14px; font-family:'Inter';
     outline:none; background:var(--paper-dim);
   }
-  .chat-input-row input:focus{ border-color:var(--maroon-700); background:var(--white); }
+  .chat-input-row input:focus{ border-color:var(--green-600); background:var(--white); }
   .send-btn{
-    background:var(--maroon); color:var(--white); border:none; border-radius:50%; width:42px; height:42px; flex-shrink:0;
+    background:var(--green); color:var(--white); border:none; border-radius:50%; width:42px; height:42px; flex-shrink:0;
     cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s;
   }
-  .send-btn:hover{ background:var(--maroon-700); }
+  .send-btn:hover{ background:var(--green-800); }
   .disclaimer{ font-size:11px; color:var(--ink-soft); margin-top:9px; text-align:center; }
 
   /* ---------- DASHBOARD VIEW ---------- */
@@ -161,15 +171,15 @@
   .range-pill button{
     border:1px solid var(--line-strong); background:var(--white); padding:7px 13px; font-size:12.5px; border-radius:20px; cursor:pointer; color:var(--ink-soft);
   }
-  .range-pill button.active{ background:var(--maroon); color:var(--white); border-color:var(--maroon); }
+  .range-pill button.active{ background:var(--green); color:var(--white); border-color:var(--green); }
 
   .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
   .stat-card{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:18px 20px; position:relative; overflow:hidden; }
   .stat-card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--gold); }
   .stat-card .label{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
   .stat-card .value{ font-family:'Fraunces'; font-size:30px; font-weight:600; line-height:1; }
-  .stat-card .delta{ font-size:11.5px; margin-top:8px; color:var(--green); }
-  .stat-card .delta.neg{ color:#a8402e; }
+  .stat-card .delta{ font-size:11.5px; margin-top:8px; color:var(--green-600); }
+  .stat-card .delta.neg{ color:var(--red); }
 
   .dash-row{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; margin-bottom:20px; }
   .panel{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:22px; }
@@ -179,7 +189,7 @@
   .bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:13px; }
   .bar-row .bar-label{ width:150px; font-size:12.5px; color:var(--ink); flex-shrink:0; }
   .bar-track{ flex:1; height:9px; background:var(--paper-dim); border-radius:5px; overflow:hidden; }
-  .bar-fill{ height:100%; background:linear-gradient(90deg, var(--maroon), var(--maroon-700)); border-radius:5px; }
+  .bar-fill{ height:100%; background:linear-gradient(90deg, var(--green), var(--green-600)); border-radius:5px; }
   .bar-row .bar-val{ width:36px; text-align:right; font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--ink-soft); flex-shrink:0; }
 
   .donut-wrap{ display:flex; align-items:center; gap:22px; }
@@ -187,12 +197,12 @@
   .legend-swatch{ width:10px;height:10px;border-radius:2px; }
 
   .esc-table{ width:100%; border-collapse:collapse; }
-  .esc-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft); font-weight:600; padding:0 10px 10px 0; border-bottom:1px solid var(--line); }
+  .esc-table th{ text-align:left; font-size:11px; letter-spacing:.4px; color:var(--ink-soft); font-weight:600; padding:0 10px 10px 0; border-bottom:1px solid var(--line); }
   .esc-table td{ padding:11px 10px 11px 0; border-bottom:1px solid var(--line); font-size:13px; vertical-align:top; }
   .esc-table tr:last-child td{ border-bottom:none; }
   .status-pill{ font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; }
   .status-pill.pending{ background:var(--amber-soft); color:var(--amber); }
-  .status-pill.routed{ background:var(--green-soft); color:var(--green); }
+  .status-pill.routed{ background:var(--green-soft); color:var(--green-600); }
 
   /* ---------- KB VIEW ---------- */
   .kb-wrap{ flex:1; display:flex; min-height:0; }
@@ -203,27 +213,61 @@
     padding:9px 10px; border-radius:5px; font-size:13.5px; color:var(--ink); cursor:pointer; margin-bottom:2px;
   }
   .kb-cat-btn .count{ color:var(--ink-soft); font-family:'IBM Plex Mono'; font-size:11px; }
-  .kb-cat-btn.active{ background:var(--white); font-weight:600; box-shadow:inset 3px 0 0 var(--maroon); }
+  .kb-cat-btn.active{ background:var(--white); font-weight:600; box-shadow:inset 3px 0 0 var(--green); }
   .kb-cat-btn:hover{ background:var(--white); }
+  .kb-storage-note{ font-size:11px; color:var(--ink-soft); line-height:1.5; margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
 
   .kb-main{ flex:1; overflow-y:auto; padding:26px 34px 50px; }
-  .kb-main-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .kb-main-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:14px; flex-wrap:wrap; }
   .kb-main-head h2{ font-size:19px; font-weight:600; margin:0; }
-  .kb-search{ position:relative; flex:1; max-width:320px; margin:0 20px; }
+  .kb-search{ position:relative; flex:1; max-width:320px; }
   .kb-search input{ width:100%; border:1px solid var(--line-strong); border-radius:20px; padding:9px 14px; font-size:13px; font-family:'Inter'; outline:none; }
-  .kb-search input:focus{ border-color:var(--maroon-700); }
-  .add-btn{ background:var(--maroon); color:var(--white); border:none; border-radius:20px; padding:10px 18px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
-  .add-btn:hover{ background:var(--maroon-700); }
+  .kb-search input:focus{ border-color:var(--green-600); }
+  .add-btn{ background:var(--green); color:var(--white); border:none; border-radius:20px; padding:10px 18px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .add-btn:hover{ background:var(--green-800); }
 
   .kb-card{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:16px 18px; margin-bottom:12px; }
   .kb-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:8px; }
-  .kb-tag{ display:inline-block; font-size:10.5px; font-weight:600; color:var(--maroon-700); background:#f4e6e2; padding:2px 9px; border-radius:20px; margin-bottom:8px; }
+  .kb-tag{ display:inline-block; font-size:10.5px; font-weight:600; color:var(--green-800); background:var(--green-soft); padding:2px 9px; border-radius:20px; margin-bottom:8px; margin-right:6px; }
+  .kb-tag.form-tag{ color:var(--amber); background:var(--amber-soft); }
   .kb-q{ font-size:14.5px; font-weight:600; margin:0 0 6px; }
   .kb-a{ font-size:13px; color:var(--ink-soft); line-height:1.5; margin:0; }
+  .kb-fields{ font-size:12px; color:var(--ink-soft); margin-top:8px; }
+  .kb-fields span{ display:inline-block; background:var(--paper-dim); border:1px solid var(--line); border-radius:20px; padding:2px 9px; margin:3px 4px 0 0; }
   .kb-card-actions{ display:flex; gap:8px; flex-shrink:0; }
   .icon-btn{ border:1px solid var(--line); background:var(--white); border-radius:5px; width:30px; height:30px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
-  .icon-btn:hover{ border-color:var(--maroon-700); color:var(--maroon-700); }
+  .icon-btn:hover{ border-color:var(--green-600); color:var(--green-800); }
   .kb-meta{ display:flex; gap:14px; font-size:11px; color:var(--ink-soft); margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(13,43,28,.45); z-index:50;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{ background:var(--white); border-radius:8px; width:100%; max-width:460px; max-height:90vh; overflow-y:auto; padding:26px 28px; }
+  .modal h2{ font-size:18px; margin:0 0 4px; }
+  .modal .modal-sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:18px; }
+  .field-group{ margin-bottom:14px; }
+  .field-group label{ display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:5px; }
+  .field-group .hint{ font-size:11px; color:var(--ink-soft); font-weight:400; margin-left:4px; }
+  .field-group input[type="text"], .field-group textarea, .field-group select{
+    width:100%; border:1px solid var(--line-strong); border-radius:5px; padding:9px 11px; font-size:13px;
+    font-family:'Inter'; outline:none; background:var(--paper);
+  }
+  .field-group textarea{ resize:vertical; min-height:64px; }
+  .field-group input:focus, .field-group textarea:focus, .field-group select:focus{ border-color:var(--green-600); background:var(--white); }
+  .type-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .type-toggle button{
+    flex:1; border:1px solid var(--line-strong); background:var(--white); border-radius:6px; padding:10px; font-size:13px;
+    font-weight:600; color:var(--ink-soft); cursor:pointer;
+  }
+  .type-toggle button.active{ background:var(--green-soft); border-color:var(--green-600); color:var(--green-800); }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+  .btn-secondary{ background:var(--white); border:1px solid var(--line-strong); color:var(--ink-soft); border-radius:20px; padding:9px 16px; font-size:13px; cursor:pointer; }
+  .btn-primary{ background:var(--green); border:none; color:var(--white); border-radius:20px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; }
+  .btn-primary:hover{ background:var(--green-800); }
+  .btn-danger{ background:var(--red); }
 
   ::-webkit-scrollbar{ width:9px; height:9px; }
   ::-webkit-scrollbar-thumb{ background:var(--line-strong); border-radius:20px; }
@@ -266,12 +310,12 @@
         <div class="quick-cat">
           <div class="cat-label"><span class="dot"></span>Enrollment &amp; Admission</div>
           <button class="quick-q" data-q="What documents do I need for enrollment?">What documents do I need for enrollment?</button>
-          <button class="quick-q" data-q="When does enrollment for next semester start?">When does enrollment start?</button>
+          <button class="quick-q" data-q="Can I have the enrollment form?">Can I have the enrollment form?</button>
         </div>
 
         <div class="quick-cat">
           <div class="cat-label"><span class="dot"></span>Registrar &amp; Fees</div>
-          <button class="quick-q" data-q="How do I request a Transcript of Records?">How do I request a TOR?</button>
+          <button class="quick-q" data-q="I need the TOR request form">I need the TOR request form</button>
           <button class="quick-q" data-q="What are the available scholarships?">What scholarships are available?</button>
         </div>
 
@@ -305,7 +349,7 @@
 
         <div class="messages" id="messages">
           <div class="msg bot">
-            <div class="bubble">Hi! I'm UV-Assist, the University of the Visayas helpdesk assistant. Ask me about enrollment, registrar requests, fees, schedules, or campus policies — and I'll pull the answer from the official knowledge base.</div>
+            <div class="bubble">Hi! I'm UV-Assist, the University of the Visayas helpdesk assistant. Ask me about enrollment, registrar requests, fees, schedules, or campus policies — I can also hand you the actual form when you need one to fill out.</div>
           </div>
         </div>
 
@@ -378,14 +422,14 @@
           <div class="panel-sub">How queries were handled</div>
           <div class="donut-wrap">
             <svg width="130" height="130" viewBox="0 0 42 42">
-              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#e2d9c6" stroke-width="6"></circle>
-              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#6d1524" stroke-width="6" stroke-dasharray="63 37" stroke-dashoffset="25"></circle>
-              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#c79a3e" stroke-width="6" stroke-dasharray="18 82" stroke-dashoffset="-38"></circle>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#dbe8e0" stroke-width="6"></circle>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#1f6b45" stroke-width="6" stroke-dasharray="63 37" stroke-dashoffset="25"></circle>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#c9a24a" stroke-width="6" stroke-dasharray="18 82" stroke-dashoffset="-38"></circle>
               <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#a8722e" stroke-width="6" stroke-dasharray="19 81" stroke-dashoffset="-56"></circle>
             </svg>
             <div>
-              <div class="legend-item"><span class="legend-swatch" style="background:#6d1524"></span>Answered directly — 63%</div>
-              <div class="legend-item"><span class="legend-swatch" style="background:#c79a3e"></span>Answered, staff reviewed — 18%</div>
+              <div class="legend-item"><span class="legend-swatch" style="background:#1f6b45"></span>Answered directly — 63%</div>
+              <div class="legend-item"><span class="legend-swatch" style="background:#c9a24a"></span>Answered, staff reviewed — 18%</div>
               <div class="legend-item"><span class="legend-swatch" style="background:#a8722e"></span>Escalated, no KB match — 19%</div>
             </div>
           </div>
@@ -414,12 +458,8 @@
     <div class="kb-wrap">
       <div class="kb-sidebar">
         <h3>Categories</h3>
-        <button class="kb-cat-btn active" data-cat="all">All entries <span class="count">24</span></button>
-        <button class="kb-cat-btn" data-cat="Admissions">Admissions <span class="count">6</span></button>
-        <button class="kb-cat-btn" data-cat="Registrar">Registrar <span class="count">7</span></button>
-        <button class="kb-cat-btn" data-cat="Tuition">Tuition &amp; Scholarships <span class="count">5</span></button>
-        <button class="kb-cat-btn" data-cat="Policies">Campus Policies <span class="count">4</span></button>
-        <button class="kb-cat-btn" data-cat="General">General FAQ <span class="count">2</span></button>
+        <div id="kb-cat-list"></div>
+        <div class="kb-storage-note">Entries — including uploaded .docx/.pdf files, up to 4&nbsp;MB each — are saved for this prototype and visible to everyone who opens it. This is the live knowledge base the chatbot reads from.</div>
       </div>
 
       <div class="kb-main">
@@ -436,7 +476,163 @@
 
 </div>
 
+<!-- ============ ADD / EDIT MODAL ============ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Add knowledge base entry</h2>
+    <div class="modal-sub">FAQ entries answer a question directly. Form entries hand the student a downloadable form when they ask for one.</div>
+
+    <div class="type-toggle">
+      <button type="button" class="active" id="type-faq" data-type="faq">FAQ answer</button>
+      <button type="button" id="type-form" data-type="form">Form / document</button>
+    </div>
+
+    <div class="field-group">
+      <label>Category</label>
+      <select id="f-cat">
+        <option value="Admissions">Admissions</option>
+        <option value="Registrar">Registrar</option>
+        <option value="Tuition">Tuition &amp; Scholarships</option>
+        <option value="Policies">Campus Policies</option>
+        <option value="General">General FAQ</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label>Trigger question <span class="hint">— what a student would type</span></label>
+      <input type="text" id="f-q" placeholder="e.g. Can I have the enrollment form?">
+    </div>
+
+    <div class="field-group">
+      <label>Match keywords <span class="hint">— comma separated, used to detect this in chat</span></label>
+      <input type="text" id="f-kw" placeholder="e.g. enrollment form, new student form">
+    </div>
+
+    <div class="field-group" id="group-answer">
+      <label>Answer</label>
+      <textarea id="f-answer" placeholder="Write the answer the chatbot should give."></textarea>
+    </div>
+
+    <div class="field-group" id="group-formdesc" style="display:none;">
+      <label>Short description <span class="hint">— shown above the form card</span></label>
+      <textarea id="f-formdesc" placeholder="e.g. Fill this out and submit at the Registrar's window."></textarea>
+    </div>
+
+    <div class="field-group" id="group-fields" style="display:none;">
+      <label>Form fields <span class="hint">— comma separated, shown as a preview in chat</span></label>
+      <textarea id="f-fields" placeholder="e.g. Full Name, Student ID, Program, Contact Number"></textarea>
+    </div>
+
+    <div class="field-group" id="group-file" style="display:none;">
+      <label>Attach the actual file <span class="hint">— .docx or .pdf, under 4&nbsp;MB</span></label>
+      <input type="file" id="f-file" accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      <div id="f-file-current" style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-primary" id="modal-save">Save entry</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // =========================================================
+  // Storage-backed knowledge base ("database" for this prototype)
+  // Shared across everyone who opens this artifact.
+  // =========================================================
+  const KB_KEY = 'uv-assist-kb-entries';
+
+  const seedEntries = [
+    {id:'e1', cat:'Admissions', type:'faq',
+     kw:['document','enrollment','requirement','admission'],
+     q:'What documents do I need for enrollment?',
+     a:'For new students: Form 138 (report card), PSA birth certificate, and 2 ID photos. For continuing students: your registration form from the previous semester and a valid UV ID.',
+     conf:0.91, updated:'3 days ago', uses:412},
+    {id:'e2', cat:'Admissions', type:'form',
+     kw:['enrollment form','new student form','admission form'],
+     q:'Can I have the enrollment form?',
+     a:'Here is the New Student Enrollment Form. Fill it out and bring it, along with your requirements, to the Admissions window.',
+     fields:['Full Name','Date of Birth','Previous School','Program Applied For','Contact Number','Email Address','Guardian Name'],
+     conf:0.9, updated:'3 days ago', uses:184},
+    {id:'e3', cat:'Registrar', type:'faq',
+     kw:['when','start','enrollment period','schedule of enrollment'],
+     q:'When does enrollment for next semester start?',
+     a:"Enrollment for the upcoming semester opens two weeks before the term starts. Continuing students enroll by year level; exact dates are posted on the Registrar's bulletin and the student portal.",
+     conf:0.88, updated:'1 week ago', uses:150},
+    {id:'e4', cat:'Registrar', type:'faq',
+     kw:['tor','transcript','records'],
+     q:'How do I request a Transcript of Records?',
+     a:"Submit a TOR request form at the Registrar's window or through the online request portal. Processing takes 5–7 working days once outstanding balances are cleared.",
+     conf:0.93, updated:'5 days ago', uses:301},
+    {id:'e5', cat:'Registrar', type:'form',
+     kw:['tor form','tor request form','transcript form'],
+     q:'I need the TOR request form',
+     a:'Here is the Transcript of Records Request Form. Complete it and submit at the Registrar window with your official receipt.',
+     fields:['Full Name','Student ID','Program','Year Graduated / Last Attended','Purpose of Request','Number of Copies','Contact Number'],
+     conf:0.9, updated:'5 days ago', uses:97},
+    {id:'e6', cat:'Tuition', type:'faq',
+     kw:['scholarship','stipend','financial aid','discount'],
+     q:'What scholarships are available?',
+     a:"UV offers academic scholarships (President's & Dean's List), athletic grants, and partial working-student discounts. Applications are filed at the Scholarship Office at the start of each school year.",
+     conf:0.85, updated:'4 days ago', uses:275},
+    {id:'e7', cat:'Tuition', type:'form',
+     kw:['scholarship form','scholarship application form','financial aid form'],
+     q:'Give me the scholarship application form',
+     a:'Here is the Scholarship Application Form. Submit it to the Scholarship Office with your latest grades.',
+     fields:['Full Name','Student ID','Program & Year Level','General Weighted Average','Scholarship Type','Contact Number','Email Address'],
+     conf:0.87, updated:'4 days ago', uses:64},
+    {id:'e8', cat:'Policies', type:'faq',
+     kw:['attendance','absent','late'],
+     q:"What is the school's attendance policy?",
+     a:'Students who accumulate absences equal to 20% of total class hours in a subject may be dropped, per the Student Handbook. Notify your instructor and file an excuse letter for valid absences.',
+     conf:0.89, updated:'6 days ago', uses:167},
+    {id:'e9', cat:'Policies', type:'faq',
+     kw:['bisaya','cebuano','taglish','language'],
+     q:'Is UV-Assist available in Bisaya?',
+     a:'UV-Assist answers primarily in English but recognizes common Bisaya and Taglish phrasing in your questions, so you can ask naturally.',
+     conf:0.74, updated:'1 month ago', uses:132},
+    {id:'e10', cat:'General', type:'form',
+     kw:['shifting form','shift program form','change course form'],
+     q:'I want the course shifting form',
+     a:'Here is the Course Shifting Form. Have it signed by your current and target program advisers before submitting to the Registrar.',
+     fields:['Full Name','Student ID','Current Program','Program To Shift Into','Reason For Shifting',"Adviser's Signature"],
+     conf:0.83, updated:'2 weeks ago', uses:41},
+    {id:'e11', cat:'General', type:'faq',
+     kw:['guidance office','counseling','where is'],
+     q:'How do I reach the Guidance Office?',
+     a:'The Guidance Office is at the Student Affairs building, 2nd floor, open 8am–5pm on weekdays.',
+     conf:0.8, updated:'2 weeks ago', uses:81},
+  ];
+
+  let kbEntries = [];
+  let storageWorking = true;
+
+  async function loadKB(){
+    try{
+      const res = await window.storage.get(KB_KEY, true);
+      kbEntries = JSON.parse(res.value);
+    }catch(e){
+      // Nothing saved yet — seed it.
+      kbEntries = seedEntries;
+      try{
+        await window.storage.set(KB_KEY, JSON.stringify(kbEntries), true);
+      }catch(e2){
+        storageWorking = false;
+        console.error('Could not seed shared storage', e2);
+      }
+    }
+  }
+
+  async function saveKB(){
+    try{
+      await window.storage.set(KB_KEY, JSON.stringify(kbEntries), true);
+    }catch(e){
+      storageWorking = false;
+      console.error('Could not save to shared storage', e);
+    }
+  }
+
   // ---------- Tab navigation ----------
   document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -448,21 +644,6 @@
   });
 
   // ---------- Chat logic ----------
-  const kbEntries = [
-    {cat:"Admissions", kw:["enroll","enrollment","admission","document","requirement"], q:"What documents do I need for enrollment?",
-     a:"For new students: Form 138 (report card), PSA birth certificate, and 2 ID photos. For continuing students: your registration form from the previous semester and a valid UV ID.", conf:0.91},
-    {cat:"Admissions", kw:["when","start","enrollment period","schedule of enrollment"], q:"When does enrollment for next semester start?",
-     a:"Enrollment for the upcoming semester opens two weeks before the term starts. Continuing students enroll by year level; exact dates are posted on the Registrar's bulletin and the student portal.", conf:0.88},
-    {cat:"Registrar", kw:["tor","transcript","records"], q:"How do I request a Transcript of Records?",
-     a:"Submit a TOR request form at the Registrar's window or through the online request portal. Processing takes 5–7 working days once outstanding balances are cleared.", conf:0.93},
-    {cat:"Tuition", kw:["scholarship","stipend","financial aid","discount"], q:"What scholarships are available?",
-     a:"UV offers academic scholarships (President's & Dean's List), athletic grants, and partial working-student discounts. Applications are filed at the Scholarship Office at the start of each school year.", conf:0.85},
-    {cat:"Policies", kw:["attendance","absent","late"], q:"What is the school's attendance policy?",
-     a:"Students who accumulate absences equal to 20% of total class hours in a subject may be dropped, per the Student Handbook. Notify your instructor and file an excuse letter for valid absences.", conf:0.89},
-    {cat:"Policies", kw:["bisaya","cebuano","taglish","language"], q:"Is UV-Assist available in Bisaya?",
-     a:"UV-Assist answers primarily in English but recognizes common Bisaya and Taglish phrasing in your questions, so you can ask naturally.", conf:0.74},
-  ];
-
   const messagesEl = document.getElementById('messages');
   const input = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
@@ -488,13 +669,53 @@
 
   function findMatch(text){
     const lower = text.toLowerCase();
+    const mentionsForm = /\bform\b/.test(lower);
     let best = null, bestScore = 0;
     kbEntries.forEach(entry=>{
       let score = 0;
-      entry.kw.forEach(k=>{ if(lower.includes(k)) score++; });
+      (entry.kw||[]).forEach(k=>{ if(lower.includes(k)) score += k.includes(' ') ? 2 : 1; });
+      if(entry.type === 'form' && mentionsForm) score += 2;
       if(score > bestScore){ bestScore = score; best = entry; }
     });
     return bestScore > 0 ? best : null;
+  }
+
+  function slugify(s){
+    return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  }
+
+  function base64ToBlob(base64, mime){
+    const byteChars = atob(base64);
+    const byteNumbers = new Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++){ byteNumbers[i] = byteChars.charCodeAt(i); }
+    return new Blob([new Uint8Array(byteNumbers)], {type: mime});
+  }
+
+  function triggerFormDownload(entry){
+    let blob, filename;
+    if(entry.fileData){
+      blob = base64ToBlob(entry.fileData, entry.fileMime || 'application/octet-stream');
+      filename = entry.fileName || (slugify(entry.q) + '.docx');
+    } else {
+      const lines = [
+        'UNIVERSITY OF THE VISAYAS',
+        entry.q.replace(/\?$/,''),
+        '------------------------------------------------',
+        'Instructions: Fill out all fields below and submit to the concerned office.',
+        ''
+      ];
+      (entry.fields||[]).forEach(f=>{ lines.push(f + ':  ____________________________________'); lines.push(''); });
+      blob = new Blob([lines.join('\n')], {type:'text/plain'});
+      filename = slugify(entry.q) + '.txt';
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   function addBotMsg(text){
@@ -514,6 +735,23 @@
         <div class="meta-row"><span class="confidence-chip low">confidence ${isPrivate||wantsHuman? '—' : '0.'+(20+Math.floor(Math.random()*30))}</span><span>${reason}</span></div>
       `;
       messagesEl.appendChild(div);
+    } else if(match.type === 'form'){
+      const div = document.createElement('div');
+      div.className = 'msg bot';
+      const fieldsHtml = (match.fields||[]).map(f=>`<li>${f}</li>`).join('');
+      const fileNote = match.fileData ? `Official file: ${match.fileName}` : `${(match.fields||[]).length} fields to complete`;
+      div.innerHTML = `
+        <div class="bubble">${match.a}</div>
+        <div class="form-card">
+          <div class="ft-title">${match.q.replace(/\?$/,'')}</div>
+          <div class="ft-sub">${fileNote}</div>
+          <ul>${fieldsHtml}</ul>
+          <button class="form-dl-btn" data-id="${match.id}">⬇ Download ${match.fileData ? 'form' : 'checklist'}</button>
+        </div>
+        <div class="meta-row"><span class="confidence-chip high">confidence ${match.conf.toFixed(2)}</span><span class="source-tag">Source: ${match.cat} knowledge base</span></div>
+      `;
+      messagesEl.appendChild(div);
+      div.querySelector('.form-dl-btn').addEventListener('click', ()=> triggerFormDownload(match));
     } else {
       const div = document.createElement('div');
       div.className = 'msg bot';
@@ -553,69 +791,190 @@
   });
 
   // ---------- Knowledge base view ----------
-  const kbData = [
-    {cat:"Admissions", q:"What documents do I need for enrollment?", a:"Form 138 / TOR, PSA birth certificate, 2x2 ID photos, and (for transferees) an honorable dismissal.", updated:"3 days ago", uses:412},
-    {cat:"Admissions", q:"When does enrollment open for continuing students?", a:"Two weeks before the term starts, scheduled by year level; posted on the student portal.", updated:"1 week ago", uses:388},
-    {cat:"Admissions", q:"Can I shift to another program mid-semester?", a:"Shifting requests are accepted until week 3 of the semester, subject to program adviser approval.", updated:"2 weeks ago", uses:96},
-    {cat:"Registrar", q:"How do I request a Transcript of Records?", a:"File a TOR request at the Registrar's window or online portal. 5–7 working days once balances are cleared.", updated:"5 days ago", uses:301},
-    {cat:"Registrar", q:"How do I get a Certificate of Enrollment?", a:"Available same-day at the Registrar's window for a minimal fee, or instantly via the student portal.", updated:"1 month ago", uses:210},
-    {cat:"Registrar", q:"What's the process for correcting a name on my records?", a:"Submit a notarized affidavit of discrepancy plus supporting IDs to the Registrar for review.", updated:"2 months ago", uses:44},
-    {cat:"Tuition", q:"What scholarships are available?", a:"Academic (President's/Dean's List), athletic grants, and working-student discounts, filed at the Scholarship Office.", updated:"4 days ago", uses:275},
-    {cat:"Tuition", q:"When is the deadline for tuition installment payments?", a:"Installments are due on the 30th and 60th day of the semester; a grace period applies before penalties.", updated:"1 week ago", uses:190},
-    {cat:"Tuition", q:"Can I get a refund if I drop a subject early?", a:"Refunds follow a prorated schedule based on drop date, detailed in the Student Handbook, Section 4.", updated:"3 weeks ago", uses:58},
-    {cat:"Policies", q:"What is the school's attendance policy?", a:"Absences exceeding 20% of total class hours in a subject may result in being dropped from that subject.", updated:"6 days ago", uses:167},
-    {cat:"Policies", q:"Is UV-Assist available in Bisaya?", a:"Answers are primarily in English but the system recognizes common Bisaya/Taglish phrasing in questions.", updated:"1 month ago", uses:132},
-    {cat:"General", q:"How do I reach the Guidance Office?", a:"The Guidance Office is at the Student Affairs building, 2nd floor, open 8am–5pm on weekdays.", updated:"2 weeks ago", uses:81},
-  ];
-
   const kbList = document.getElementById('kb-list');
   const kbSearch = document.getElementById('kb-search');
+  const kbCatList = document.getElementById('kb-cat-list');
+  const catLabels = {Admissions:'Admissions', Registrar:'Registrar', Tuition:'Tuition & Scholarships', Policies:'Campus Policies', General:'General FAQ'};
   let activeCat = 'all';
+
+  function renderCats(){
+    const counts = {};
+    kbEntries.forEach(e=>{ counts[e.cat] = (counts[e.cat]||0)+1; });
+    let html = `<button class="kb-cat-btn ${activeCat==='all'?'active':''}" data-cat="all">All entries <span class="count">${kbEntries.length}</span></button>`;
+    Object.keys(catLabels).forEach(c=>{
+      html += `<button class="kb-cat-btn ${activeCat===c?'active':''}" data-cat="${c}">${catLabels[c]} <span class="count">${counts[c]||0}</span></button>`;
+    });
+    kbCatList.innerHTML = html;
+    kbCatList.querySelectorAll('.kb-cat-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ activeCat = btn.dataset.cat; renderCats(); renderKB(); });
+    });
+  }
 
   function renderKB(){
     const term = kbSearch.value.trim().toLowerCase();
-    const filtered = kbData.filter(e=>{
+    const filtered = kbEntries.filter(e=>{
       const matchCat = activeCat === 'all' || e.cat === activeCat;
       const matchTerm = !term || e.q.toLowerCase().includes(term) || e.a.toLowerCase().includes(term);
       return matchCat && matchTerm;
     });
     kbList.innerHTML = filtered.map(e=>`
-      <div class="kb-card">
+      <div class="kb-card" data-id="${e.id}">
         <div class="kb-card-top">
           <div>
-            <span class="kb-tag">${e.cat}</span>
+            <span class="kb-tag">${catLabels[e.cat]||e.cat}</span>${e.type==='form' ? '<span class="kb-tag form-tag">Form</span>' : ''}${e.fileData ? `<span class="kb-tag form-tag">📎 ${e.fileName}</span>` : ''}
             <p class="kb-q">${e.q}</p>
             <p class="kb-a">${e.a}</p>
+            ${e.type==='form' ? `<div class="kb-fields">${(e.fields||[]).map(f=>`<span>${f}</span>`).join('')}</div>` : ''}
           </div>
           <div class="kb-card-actions">
-            <button class="icon-btn" title="Edit">✎</button>
-            <button class="icon-btn" title="Archive">🗑</button>
+            <button class="icon-btn edit-btn" title="Edit">✎</button>
+            <button class="icon-btn del-btn" title="Archive">🗑</button>
           </div>
         </div>
         <div class="kb-meta"><span>Updated ${e.updated}</span><span>Matched ${e.uses} queries this month</span></div>
       </div>
     `).join('') || `<div style="color:var(--ink-soft); font-size:13.5px; padding:30px 0; text-align:center;">No entries match your search.</div>`;
+
+    kbList.querySelectorAll('.del-btn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.closest('.kb-card').dataset.id;
+        kbEntries = kbEntries.filter(e=>e.id!==id);
+        await saveKB();
+        renderCats(); renderKB();
+      });
+    });
+    kbList.querySelectorAll('.edit-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.closest('.kb-card').dataset.id;
+        openModal(kbEntries.find(e=>e.id===id));
+      });
+    });
   }
 
-  document.querySelectorAll('.kb-cat-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.kb-cat-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      activeCat = btn.dataset.cat;
-      renderKB();
-    });
-  });
   kbSearch.addEventListener('input', renderKB);
-  document.getElementById('kb-add-btn').addEventListener('click', ()=>{
-    const q = prompt("New question pattern:");
-    if(!q) return;
-    const a = prompt("Answer text:");
-    if(!a) return;
-    kbData.unshift({cat: activeCat === 'all' ? 'General' : activeCat, q, a, updated:"just now", uses:0});
-    renderKB();
+
+  // ---------- Add / edit modal ----------
+  const overlay = document.getElementById('modal-overlay');
+  const modalTitle = document.getElementById('modal-title');
+  const typeFaqBtn = document.getElementById('type-faq');
+  const typeFormBtn = document.getElementById('type-form');
+  const groupAnswer = document.getElementById('group-answer');
+  const groupFormdesc = document.getElementById('group-formdesc');
+  const groupFields = document.getElementById('group-fields');
+  const fCat = document.getElementById('f-cat');
+  const fQ = document.getElementById('f-q');
+  const fKw = document.getElementById('f-kw');
+  const fAnswer = document.getElementById('f-answer');
+  const fFormdesc = document.getElementById('f-formdesc');
+  const fFields = document.getElementById('f-fields');
+  const fFile = document.getElementById('f-file');
+  const fFileCurrent = document.getElementById('f-file-current');
+  let editingId = null;
+  let currentType = 'faq';
+  let pendingFileRemoved = false;
+
+  function readFileAsBase64(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result.split(',')[1]);
+      reader.onerror = ()=> reject(new Error('Could not read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setType(t){
+    currentType = t;
+    typeFaqBtn.classList.toggle('active', t==='faq');
+    typeFormBtn.classList.toggle('active', t==='form');
+    groupAnswer.style.display = t==='faq' ? 'block' : 'none';
+    groupFormdesc.style.display = t==='form' ? 'block' : 'none';
+    groupFields.style.display = t==='form' ? 'block' : 'none';
+    groupFile.style.display = t==='form' ? 'block' : 'none';
+  }
+  typeFaqBtn.addEventListener('click', ()=>setType('faq'));
+  typeFormBtn.addEventListener('click', ()=>setType('form'));
+
+  function openModal(entry){
+    editingId = entry ? entry.id : null;
+    modalTitle.textContent = entry ? 'Edit knowledge base entry' : 'Add knowledge base entry';
+    setType(entry ? entry.type : 'faq');
+    fCat.value = entry ? entry.cat : 'Admissions';
+    fQ.value = entry ? entry.q : '';
+    fKw.value = entry ? (entry.kw||[]).join(', ') : '';
+    fAnswer.value = entry && entry.type==='faq' ? entry.a : '';
+    fFormdesc.value = entry && entry.type==='form' ? entry.a : '';
+    fFields.value = entry && entry.type==='form' ? (entry.fields||[]).join(', ') : '';
+    fFile.value = '';
+    pendingFileRemoved = false;
+    fFileCurrent.textContent = entry && entry.fileName ? `Currently attached: ${entry.fileName} (choose a new file to replace it)` : '';
+    overlay.classList.add('open');
+  }
+  function closeModal(){ overlay.classList.remove('open'); }
+
+  document.getElementById('kb-add-btn').addEventListener('click', ()=> openModal(null));
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e=>{ if(e.target === overlay) closeModal(); });
+
+  document.getElementById('modal-save').addEventListener('click', async ()=>{
+    const q = fQ.value.trim();
+    const kw = fKw.value.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+    if(!q || !kw.length){ alert('Please fill in the trigger question and at least one match keyword.'); return; }
+
+    if(currentType === 'faq'){
+      const a = fAnswer.value.trim();
+      if(!a){ alert('Please write an answer.'); return; }
+      if(editingId){
+        const e = kbEntries.find(x=>x.id===editingId);
+        Object.assign(e, {cat:fCat.value, type:'faq', q, kw, a, updated:'just now'});
+      } else {
+        kbEntries.unshift({id:'e'+Date.now(), cat:fCat.value, type:'faq', q, kw, a, conf:0.85, updated:'just now', uses:0});
+      }
+    } else {
+      const a = fFormdesc.value.trim();
+      const fields = fFields.value.split(',').map(s=>s.trim()).filter(Boolean);
+      if(!a || !fields.length){ alert('Please add a description and at least one form field.'); return; }
+
+      let fileData = null, fileName = null, fileMime = null;
+      const chosen = fFile.files[0];
+      if(chosen){
+        if(chosen.size > 4 * 1024 * 1024){
+          alert('That file is over 4 MB, which is too large to store here. Please use a smaller file.');
+          return;
+        }
+        try{
+          fileData = await readFileAsBase64(chosen);
+          fileName = chosen.name;
+          fileMime = chosen.type || 'application/octet-stream';
+        }catch(err){
+          alert('Could not read that file — please try again.');
+          return;
+        }
+      }
+
+      if(editingId){
+        const e = kbEntries.find(x=>x.id===editingId);
+        Object.assign(e, {cat:fCat.value, type:'form', q, kw, a, fields, updated:'just now'});
+        if(fileData){ Object.assign(e, {fileData, fileName, fileMime}); }
+      } else {
+        const entry = {id:'e'+Date.now(), cat:fCat.value, type:'form', q, kw, a, fields, conf:0.85, updated:'just now', uses:0};
+        if(fileData){ Object.assign(entry, {fileData, fileName, fileMime}); }
+        kbEntries.unshift(entry);
+      }
+    }
+    await saveKB();
+    renderCats(); renderKB();
+    closeModal();
   });
 
-  renderKB();
+  // ---------- Init ----------
+  (async function init(){
+    await loadKB();
+    renderCats();
+    renderKB();
+    if(!storageWorking){
+      console.warn('Shared storage unavailable — running with in-memory data only for this session.');
+    }
+  })();
 </script>
 
 </body>
