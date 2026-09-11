@@ -6,19 +6,25 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 | UV-ASSIST Chat API
 |--------------------------------------------------------------------------
-| Intelligent Campus Helpdesk Chatbot
+| Database-grounded campus helpdesk chatbot.
 |
 | Flow:
+|
 | Visitor
 |    ↓
 | Intent Detection
 |    ↓
-| Knowledge Chunk Retrieval
+| Knowledge Base Retrieval
 |    ↓
-| Confidence Evaluation
+| Relevance / Confidence
 |    ↓
-| >= 0.70 → Grounded Knowledge Response
-| < 0.70  → Human Escalation
+| >= 0.70 → Answer from database
+| < 0.70  → Human escalation
+|
+| IMPORTANT:
+| UV-ASSIST DOES NOT INVENT ANSWERS.
+| The knowledge_documents / knowledge_chunks tables are the
+| source of truth.
 |--------------------------------------------------------------------------
 */
 
@@ -32,6 +38,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | Configuration
@@ -43,9 +50,10 @@ const MAX_MESSAGE_LENGTH = 2000;
 const MAX_RETRIEVAL_RESULTS = 5;
 const MAX_KNOWLEDGE_ROWS = 500;
 
+
 /*
 |--------------------------------------------------------------------------
-| JSON Response
+| JSON RESPONSE
 |--------------------------------------------------------------------------
 */
 
@@ -62,9 +70,10 @@ function jsonResponse(array $data, int $status = 200): never
     exit;
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Generate UUID
+| UUID
 |--------------------------------------------------------------------------
 */
 
@@ -86,9 +95,10 @@ function generateUuid(): string
     );
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Safe lowercase
+| TEXT HELPERS
 |--------------------------------------------------------------------------
 */
 
@@ -101,11 +111,6 @@ function lowerText(string $text): string
     return strtolower($text);
 }
 
-/*
-|--------------------------------------------------------------------------
-| Safe string length
-|--------------------------------------------------------------------------
-*/
 
 function textLength(string $text): int
 {
@@ -116,11 +121,6 @@ function textLength(string $text): int
     return strlen($text);
 }
 
-/*
-|--------------------------------------------------------------------------
-| Safe substring
-|--------------------------------------------------------------------------
-*/
 
 function textSubstring(
     string $text,
@@ -143,9 +143,10 @@ function textSubstring(
     );
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Normalize Text
+| NORMALIZE TEXT
 |--------------------------------------------------------------------------
 */
 
@@ -168,9 +169,10 @@ function normalizeText(string $text): string
     return trim($text);
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Tokenize
+| TOKENIZE
 |--------------------------------------------------------------------------
 */
 
@@ -193,7 +195,14 @@ function tokenize(string $text): array
         return [];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Stop words
+    |--------------------------------------------------------------------------
+    */
+
     $stopWords = [
+        // English
         'a',
         'an',
         'and',
@@ -202,8 +211,10 @@ function tokenize(string $text): array
         'at',
         'be',
         'can',
+        'could',
         'do',
         'does',
+        'did',
         'for',
         'from',
         'how',
@@ -225,7 +236,9 @@ function tokenize(string $text): array
         'where',
         'which',
         'who',
+        'why',
         'with',
+        'would',
         'you',
         'your',
 
@@ -250,6 +263,7 @@ function tokenize(string $text): array
         'unsa',
         'asa',
         'kanus',
+        'kanus',
         'pwede',
         'pila',
     ];
@@ -257,26 +271,27 @@ function tokenize(string $text): array
     $filtered = [];
 
     foreach ($words as $word) {
-        $length = textLength($word);
 
-        if (
-            $length >= 2 &&
-            !in_array(
-                $word,
-                $stopWords,
-                true
-            )
-        ) {
-            $filtered[] = $word;
+        if (textLength($word) < 2) {
+            continue;
         }
+
+        if (in_array($word, $stopWords, true)) {
+            continue;
+        }
+
+        $filtered[] = $word;
     }
 
-    return array_values($filtered);
+    return array_values(
+        array_unique($filtered)
+    );
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Find Department By Code
+| DEPARTMENT
 |--------------------------------------------------------------------------
 */
 
@@ -284,10 +299,12 @@ function getDepartmentIdByCode(
     PDO $pdo,
     string $code
 ): ?int {
+
     $stmt = $pdo->prepare("
         SELECT id
         FROM departments
         WHERE code = ?
+        AND status = 'active'
         LIMIT 1
     ");
 
@@ -304,470 +321,12 @@ function getDepartmentIdByCode(
     return (int) $id;
 }
 
-/*
-|--------------------------------------------------------------------------
-| Detect Intent
-|--------------------------------------------------------------------------
-*/
-
-function detectIntent(
-    PDO $pdo,
-    string $message
-): array {
-    $text = normalizeText($message);
-
-    $registrarKeywords = [
-        'transcript',
-        'transcripts',
-        'transcript of records',
-        'tor',
-        'school records',
-        'academic record',
-        'records',
-        'diploma',
-        'certificate',
-        'certification',
-        'registrar',
-        'request document',
-        'document request',
-        'good moral',
-        'honorable dismissal',
-    ];
-
-    $admissionKeywords = [
-        'admission',
-        'admissions',
-        'apply',
-        'application',
-        'applicant',
-        'applying',
-        'entrance',
-        'entrance exam',
-        'entrance examination',
-        'requirements',
-        'admission requirements',
-        'new student',
-        'freshman',
-        'first year',
-        'transfer',
-        'transferee',
-    ];
-
-    $studentAffairsKeywords = [
-        'guidance',
-        'counseling',
-        'counselling',
-        'counselor',
-        'counsellor',
-        'student affairs',
-        'student organization',
-        'organization',
-        'student activity',
-        'student activities',
-        'scholarship',
-        'scholarships',
-        'financial assistance',
-        'student welfare',
-    ];
-
-    $itKeywords = [
-        'it support',
-        'technical support',
-        'technical',
-        'wifi',
-        'wi-fi',
-        'internet',
-        'password',
-        'forgot password',
-        'reset password',
-        'login',
-        'log in',
-        'account',
-        'email account',
-        'student portal',
-        'portal',
-        'computer',
-        'network',
-        'system error',
-        'website error',
-        'cannot access',
-        'cant access',
-        'unable to access',
-    ];
-
-    $enrollmentKeywords = [
-        'enroll',
-        'enrollment',
-        'enrol',
-        'enrolment',
-        'registration',
-        'register',
-        'subjects',
-        'subject',
-        'load',
-        'class schedule',
-        'schedule',
-        'add subject',
-        'drop subject',
-        'academic registration',
-    ];
-
-    $financeKeywords = [
-        'tuition',
-        'tuition fee',
-        'fees',
-        'fee',
-        'payment',
-        'payments',
-        'cashier',
-        'assessment',
-        'school fees',
-        'balance',
-        'pay',
-        'payment deadline',
-    ];
-
-    $scores = [
-        'registrar' => 0,
-        'admissions' => 0,
-        'student_affairs' => 0,
-        'it_support' => 0,
-        'enrollment' => 0,
-        'finance' => 0,
-    ];
-
-    foreach ($registrarKeywords as $keyword) {
-        if (strpos($text, $keyword) !== false) {
-            $scores['registrar']++;
-        }
-    }
-
-    foreach ($admissionKeywords as $keyword) {
-        if (strpos($text, $keyword) !== false) {
-            $scores['admissions']++;
-        }
-    }
-
-    foreach ($studentAffairsKeywords as $keyword) {
-        if (strpos($text, $keyword) !== false) {
-            $scores['student_affairs']++;
-        }
-    }
-
-    foreach ($itKeywords as $keyword) {
-        if (strpos($text, $keyword) !== false) {
-            $scores['it_support']++;
-        }
-    }
-
-    foreach ($enrollmentKeywords as $keyword) {
-        if (strpos($text, $keyword) !== false) {
-            $scores['enrollment']++;
-        }
-    }
-
-    foreach ($financeKeywords as $keyword) {
-        if (strpos($text, $keyword) !== false) {
-            $scores['finance']++;
-        }
-    }
-
-    arsort($scores);
-
-    $intent = array_key_first($scores);
-
-    if (
-        $intent === null ||
-        $scores[$intent] <= 0
-    ) {
-        return [
-            'intent' => 'general_inquiry',
-            'department_id' => null,
-            'intent_score' => 0,
-        ];
-    }
-
-    $departmentCodes = [
-        'registrar' => 'REG',
-        'admissions' => 'ADM',
-        'student_affairs' => 'SAG',
-        'it_support' => 'IT',
-        'enrollment' => null,
-        'finance' => null,
-    ];
-
-    $departmentId = null;
-
-    if (
-        isset($departmentCodes[$intent]) &&
-        $departmentCodes[$intent] !== null
-    ) {
-        $departmentId = getDepartmentIdByCode(
-            $pdo,
-            $departmentCodes[$intent]
-        );
-    }
-
-    return [
-        'intent' => $intent,
-        'department_id' => $departmentId,
-        'intent_score' => $scores[$intent],
-    ];
-}
-
-/*
-|--------------------------------------------------------------------------
-| Calculate Chunk Score
-|--------------------------------------------------------------------------
-*/
-
-function calculateChunkScore(
-    string $query,
-    string $title,
-    string $content
-): float {
-    $queryTokens = tokenize($query);
-
-    if (count($queryTokens) === 0) {
-        return 0.0;
-    }
-
-    $titleNormalized = normalizeText($title);
-    $contentNormalized = normalizeText($content);
-
-    $titleTokens = tokenize($title);
-    $contentTokens = tokenize($content);
-
-    $titleTokenSet = array_flip($titleTokens);
-    $contentTokenSet = array_flip($contentTokens);
-
-    $matched = 0;
-    $titleMatches = 0;
-
-    foreach ($queryTokens as $token) {
-        if (isset($titleTokenSet[$token])) {
-            $titleMatches++;
-            $matched++;
-            continue;
-        }
-
-        if (isset($contentTokenSet[$token])) {
-            $matched++;
-        }
-    }
-
-    if ($matched === 0) {
-        return 0.0;
-    }
-
-    $baseScore =
-        $matched / count($queryTokens);
-
-    $titleBonus = 0.0;
-
-    if ($titleMatches > 0) {
-        $titleBonus = min(
-            0.20,
-            ($titleMatches / count($queryTokens)) * 0.20
-        );
-    }
-
-    $phraseBonus = 0.0;
-
-    $normalizedQuery = normalizeText($query);
-
-    if (
-        $normalizedQuery !== '' &&
-        (
-            strpos(
-                $titleNormalized,
-                $normalizedQuery
-            ) !== false ||
-            strpos(
-                $contentNormalized,
-                $normalizedQuery
-            ) !== false
-        )
-    ) {
-        $phraseBonus = 0.20;
-    }
-
-    $score =
-        ($baseScore * 0.65)
-        + $titleBonus
-        + $phraseBonus;
-
-    return round(
-        min(0.99, $score),
-        4
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| Search Knowledge Base
-|--------------------------------------------------------------------------
-*/
-
-function searchKnowledgeBase(
-    PDO $pdo,
-    string $query,
-    ?int $departmentId = null
-): array {
-    $sql = "
-        SELECT
-            kc.id AS chunk_id,
-            kc.document_id,
-            kc.chunk_index,
-            kc.content AS chunk_content,
-            kd.title,
-            kd.content AS document_content,
-            kd.department_id,
-            kd.source_type,
-            kd.source_reference,
-            kd.version,
-            kd.effective_date,
-            kd.expires_at,
-            kc.token_count
-        FROM knowledge_chunks kc
-        INNER JOIN knowledge_documents kd
-            ON kd.id = kc.document_id
-        WHERE kd.status = 'published'
-        AND (
-            kd.effective_date IS NULL
-            OR kd.effective_date <= CURDATE()
-        )
-        AND (
-            kd.expires_at IS NULL
-            OR kd.expires_at >= CURDATE()
-        )
-        ORDER BY
-            kd.updated_at DESC,
-            kc.chunk_index ASC
-        LIMIT " . MAX_KNOWLEDGE_ROWS;
-
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->execute();
-
-    $rows = $stmt->fetchAll();
-
-    if (!is_array($rows)) {
-        return [];
-    }
-
-    $results = [];
-
-    foreach ($rows as $row) {
-
-        $score = calculateChunkScore(
-            $query,
-            (string) ($row['title'] ?? ''),
-            (string) ($row['chunk_content'] ?? '')
-        );
-
-        if ($score <= 0) {
-
-            $documentScore = calculateChunkScore(
-                $query,
-                (string) ($row['title'] ?? ''),
-                (string) ($row['document_content'] ?? '')
-            );
-
-            if ($documentScore > 0) {
-                $score = $documentScore * 0.85;
-            }
-        }
-
-        if (
-            $departmentId !== null &&
-            isset($row['department_id']) &&
-            (int) $row['department_id'] === $departmentId &&
-            $score > 0
-        ) {
-            $score += 0.08;
-        }
-
-        $score = min(
-            0.99,
-            round($score, 4)
-        );
-
-        if ($score <= 0) {
-            continue;
-        }
-
-        $row['similarity_score'] = $score;
-
-        $results[] = $row;
-    }
-
-    usort(
-        $results,
-        static function (
-            array $a,
-            array $b
-        ): int {
-            return ((float) $b['similarity_score'])
-                <=>
-                ((float) $a['similarity_score']);
-        }
-    );
-
-    return array_slice(
-        $results,
-        0,
-        MAX_RETRIEVAL_RESULTS
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| Build Grounded Response
-|--------------------------------------------------------------------------
-*/
-
-function buildGroundedResponse(
-    array $bestResult
-): string {
-    $content = trim(
-        (string) (
-            $bestResult['chunk_content']
-            ?? ''
-        )
-    );
-
-    $title = trim(
-        (string) (
-            $bestResult['title']
-            ?? 'University Knowledge Base'
-        )
-    );
-
-    if ($content === '') {
-        return
-            'I found a relevant University of the Visayas information source, ' .
-            'but I could not retrieve the detailed content. ' .
-            'Please contact the appropriate University office for assistance.';
-    }
-
-    return
-        $content .
-        "\n\n" .
-        "Source: " .
-        $title;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Department Name
-|--------------------------------------------------------------------------
-*/
 
 function getDepartmentName(
     PDO $pdo,
     ?int $departmentId
 ): ?string {
+
     if ($departmentId === null) {
         return null;
     }
@@ -792,9 +351,598 @@ function getDepartmentName(
     return (string) $name;
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Save Analytics Event
+| INTENT DETECTION
+|--------------------------------------------------------------------------
+*/
+
+function detectIntent(
+    PDO $pdo,
+    string $message
+): array {
+
+    $text = normalizeText($message);
+
+    $groups = [
+
+        'registrar' => [
+            'transcript',
+            'transcripts',
+            'transcript of records',
+            'tor',
+            'school records',
+            'academic record',
+            'records',
+            'diploma',
+            'certificate',
+            'certification',
+            'registrar',
+            'document request',
+            'request document',
+            'good moral',
+            'honorable dismissal',
+        ],
+
+        'admissions' => [
+            'admission',
+            'admissions',
+            'apply',
+            'application',
+            'applicant',
+            'applying',
+            'entrance',
+            'entrance exam',
+            'entrance examination',
+            'requirements',
+            'admission requirements',
+            'new student',
+            'freshman',
+            'first year',
+            'transfer',
+            'transferee',
+            'form 138',
+            'birth certificate',
+        ],
+
+        'student_affairs' => [
+            'guidance',
+            'counseling',
+            'counselling',
+            'counselor',
+            'counsellor',
+            'student affairs',
+            'student organization',
+            'organization',
+            'student activity',
+            'student activities',
+            'scholarship',
+            'scholarships',
+            'financial assistance',
+            'student welfare',
+        ],
+
+        'it_support' => [
+            'it support',
+            'technical support',
+            'technical',
+            'wifi',
+            'wi fi',
+            'internet',
+            'password',
+            'forgot password',
+            'reset password',
+            'login',
+            'log in',
+            'account',
+            'email account',
+            'student portal',
+            'portal',
+            'computer',
+            'network',
+            'system error',
+            'website error',
+            'cannot access',
+            'cant access',
+            'unable to access',
+        ],
+
+        'enrollment' => [
+            'enroll',
+            'enrollment',
+            'enrol',
+            'enrolment',
+            'registration',
+            'register',
+            'subjects',
+            'subject',
+            'load',
+            'class schedule',
+            'schedule',
+            'add subject',
+            'drop subject',
+            'academic registration',
+        ],
+
+        'finance' => [
+            'tuition',
+            'tuition fee',
+            'fees',
+            'fee',
+            'payment',
+            'payments',
+            'cashier',
+            'assessment',
+            'school fees',
+            'balance',
+            'pay',
+            'payment deadline',
+            'scholarship',
+            'scholarships',
+        ],
+
+        'general' => [
+            'hello',
+            'hi',
+            'hey',
+            'help',
+            'uv assist',
+            'university',
+        ],
+    ];
+
+    $scores = [];
+
+    foreach ($groups as $intent => $keywords) {
+
+        $score = 0;
+
+        foreach ($keywords as $keyword) {
+
+            $keyword = normalizeText($keyword);
+
+            if ($keyword === '') {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Exact phrase gets a stronger score.
+            |--------------------------------------------------------------------------
+            */
+
+            if (strpos($text, $keyword) !== false) {
+
+                if (str_contains($keyword, ' ')) {
+                    $score += 2;
+                } else {
+                    $score++;
+                }
+            }
+        }
+
+        $scores[$intent] = $score;
+    }
+
+    arsort($scores);
+
+    $intent = array_key_first($scores);
+
+    if ($intent === null || $scores[$intent] <= 0) {
+
+        return [
+            'intent' => 'general_inquiry',
+            'department_id' => null,
+            'intent_score' => 0,
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Department mapping
+    |--------------------------------------------------------------------------
+    */
+
+    $departmentCodes = [
+        'registrar' => 'REG',
+        'admissions' => 'ADM',
+        'student_affairs' => 'SAG',
+        'it_support' => 'IT',
+
+        /*
+        | Enrollment information in our supplied KB belongs primarily
+        | to Registrar.
+        */
+
+        'enrollment' => 'REG',
+
+        /*
+        | Tuition currently has no Finance department in the
+        | supplied schema.
+        */
+
+        'finance' => null,
+
+        'general' => null,
+    ];
+
+    $departmentId = null;
+
+    if (
+        isset($departmentCodes[$intent]) &&
+        $departmentCodes[$intent] !== null
+    ) {
+
+        $departmentId = getDepartmentIdByCode(
+            $pdo,
+            $departmentCodes[$intent]
+        );
+    }
+
+    return [
+        'intent' => $intent,
+        'department_id' => $departmentId,
+        'intent_score' => $scores[$intent],
+    ];
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| TOKEN OVERLAP SCORE
+|--------------------------------------------------------------------------
+*/
+
+function calculateTokenScore(
+    string $query,
+    string $title,
+    string $content
+): float {
+
+    $queryTokens = tokenize($query);
+
+    if (count($queryTokens) === 0) {
+        return 0.0;
+    }
+
+    $titleTokens = tokenize($title);
+    $contentTokens = tokenize($content);
+
+    $titleSet = array_flip($titleTokens);
+    $contentSet = array_flip($contentTokens);
+
+    $matched = 0;
+    $titleMatches = 0;
+
+    foreach ($queryTokens as $token) {
+
+        if (isset($titleSet[$token])) {
+            $matched++;
+            $titleMatches++;
+            continue;
+        }
+
+        if (isset($contentSet[$token])) {
+            $matched++;
+        }
+    }
+
+    if ($matched === 0) {
+        return 0.0;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Base relevance
+    |--------------------------------------------------------------------------
+    */
+
+    $baseScore =
+        $matched / count($queryTokens);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Title bonus
+    |--------------------------------------------------------------------------
+    */
+
+    $titleBonus = 0.0;
+
+    if ($titleMatches > 0) {
+
+        $titleBonus = min(
+            0.25,
+            ($titleMatches / count($queryTokens)) * 0.25
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Exact phrase bonus
+    |--------------------------------------------------------------------------
+    */
+
+    $normalizedQuery = normalizeText($query);
+
+    $normalizedTitle = normalizeText($title);
+    $normalizedContent = normalizeText($content);
+
+    $phraseBonus = 0.0;
+
+    if (
+        $normalizedQuery !== '' &&
+        (
+            strpos(
+                $normalizedTitle,
+                $normalizedQuery
+            ) !== false
+            ||
+            strpos(
+                $normalizedContent,
+                $normalizedQuery
+            ) !== false
+        )
+    ) {
+        $phraseBonus = 0.20;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Final score
+    |--------------------------------------------------------------------------
+    */
+
+    $score =
+        ($baseScore * 0.65)
+        + $titleBonus
+        + $phraseBonus;
+
+    return round(
+        min(0.99, $score),
+        4
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SEARCH KNOWLEDGE BASE
+|--------------------------------------------------------------------------
+|
+| THIS IS THE IMPORTANT PART.
+|
+| Answers are retrieved from:
+|
+| knowledge_documents
+|        ↓
+| knowledge_chunks
+|
+|--------------------------------------------------------------------------
+*/
+
+function searchKnowledgeBase(
+    PDO $pdo,
+    string $query,
+    ?int $departmentId = null
+): array {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get only valid published knowledge.
+    |--------------------------------------------------------------------------
+    */
+
+    $sql = "
+        SELECT
+            kc.id AS chunk_id,
+            kc.document_id,
+            kc.chunk_index,
+            kc.content AS chunk_content,
+
+            kd.title,
+            kd.content AS document_content,
+            kd.department_id,
+            kd.source_type,
+            kd.source_reference,
+            kd.version,
+            kd.effective_date,
+            kd.expires_at
+
+        FROM knowledge_chunks kc
+
+        INNER JOIN knowledge_documents kd
+            ON kd.id = kc.document_id
+
+        WHERE kd.status = 'published'
+
+        AND (
+            kd.effective_date IS NULL
+            OR kd.effective_date <= CURDATE()
+        )
+
+        AND (
+            kd.expires_at IS NULL
+            OR kd.expires_at >= CURDATE()
+        )
+
+        ORDER BY kd.updated_at DESC,
+                 kc.chunk_index ASC
+
+        LIMIT " . MAX_KNOWLEDGE_ROWS;
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+
+    $rows = $stmt->fetchAll();
+
+    if (!is_array($rows)) {
+        return [];
+    }
+
+    $results = [];
+
+    foreach ($rows as $row) {
+
+        $title = (string) (
+            $row['title'] ?? ''
+        );
+
+        $chunkContent = (string) (
+            $row['chunk_content'] ?? ''
+        );
+
+        $documentContent = (string) (
+            $row['document_content'] ?? ''
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Score the chunk.
+        |--------------------------------------------------------------------------
+        */
+
+        $score = calculateTokenScore(
+            $query,
+            $title,
+            $chunkContent
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | If chunk didn't match strongly,
+        | check complete document.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($score <= 0) {
+
+            $documentScore = calculateTokenScore(
+                $query,
+                $title,
+                $documentContent
+            );
+
+            if ($documentScore > 0) {
+                $score = $documentScore * 0.90;
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Department bonus
+        |--------------------------------------------------------------------------
+        */
+
+        $rowDepartmentId =
+            $row['department_id'] !== null
+            ? (int) $row['department_id']
+            : null;
+
+        if (
+            $departmentId !== null &&
+            $rowDepartmentId !== null &&
+            $rowDepartmentId === $departmentId &&
+            $score > 0
+        ) {
+
+            $score += 0.10;
+        }
+
+        $score = min(
+            0.99,
+            round($score, 4)
+        );
+
+        if ($score <= 0) {
+            continue;
+        }
+
+        $row['similarity_score'] = $score;
+
+        $results[] = $row;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sort highest relevance first.
+    |--------------------------------------------------------------------------
+    */
+
+    usort(
+        $results,
+        static function (
+            array $a,
+            array $b
+        ): int {
+
+            return
+                (float) $b['similarity_score']
+                <=>
+                (float) $a['similarity_score'];
+        }
+    );
+
+    return array_slice(
+        $results,
+        0,
+        MAX_RETRIEVAL_RESULTS
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| BUILD DATABASE-GROUNDED ANSWER
+|--------------------------------------------------------------------------
+*/
+
+function buildGroundedResponse(
+    array $bestResult
+): string {
+
+    $content = trim(
+        (string) (
+            $bestResult['chunk_content'] ?? ''
+        )
+    );
+
+    $title = trim(
+        (string) (
+            $bestResult['title']
+            ?? 'University Knowledge Base'
+        )
+    );
+
+    if ($content === '') {
+
+        return
+            'I found a relevant University of the Visayas information source, ' .
+            'but the source does not contain enough information to provide ' .
+            'a complete answer.';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | IMPORTANT:
+    |
+    | We return the DATABASE CONTENT.
+    |
+    | There is no fabricated answer here.
+    |--------------------------------------------------------------------------
+    */
+
+    return
+        $content .
+        "\n\n" .
+        "Source: " .
+        $title;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| ANALYTICS
 |--------------------------------------------------------------------------
 */
 
@@ -804,6 +952,7 @@ function saveAnalyticsEvent(
     string $eventType,
     array $metadata = []
 ): void {
+
     $metadataJson = json_encode(
         $metadata,
         JSON_UNESCAPED_UNICODE |
@@ -815,12 +964,14 @@ function saveAnalyticsEvent(
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO analytics_events (
+        INSERT INTO analytics_events
+        (
             conversation_id,
             event_type,
             metadata
         )
-        VALUES (
+        VALUES
+        (
             :conversation_id,
             :event_type,
             :metadata
@@ -834,9 +985,10 @@ function saveAnalyticsEvent(
     ]);
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Main Request
+| MAIN REQUEST
 |--------------------------------------------------------------------------
 */
 
@@ -844,22 +996,25 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | Request Method
+    | Request method
     |--------------------------------------------------------------------------
     */
 
     if (
-        ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST'
+        ($_SERVER['REQUEST_METHOD'] ?? 'GET')
+        !== 'POST'
     ) {
+
         jsonResponse([
             'success' => false,
             'message' => 'Only POST requests are allowed.'
         ], 405);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | PDO Check
+    | PDO
     |--------------------------------------------------------------------------
     */
 
@@ -867,14 +1022,16 @@ try {
         !isset($pdo) ||
         !($pdo instanceof PDO)
     ) {
+
         throw new RuntimeException(
             'PDO connection is not available.'
         );
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Read Request
+    | Read JSON
     |--------------------------------------------------------------------------
     */
 
@@ -886,11 +1043,13 @@ try {
         $rawInput === false ||
         trim($rawInput) === ''
     ) {
+
         jsonResponse([
             'success' => false,
             'message' => 'Request body is empty.'
         ], 400);
     }
+
 
     $input = json_decode(
         $rawInput,
@@ -901,11 +1060,13 @@ try {
         !is_array($input) ||
         json_last_error() !== JSON_ERROR_NONE
     ) {
+
         jsonResponse([
             'success' => false,
             'message' => 'Invalid JSON request.'
         ], 400);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -920,6 +1081,7 @@ try {
     );
 
     if ($message === '') {
+
         jsonResponse([
             'success' => false,
             'message' => 'Please enter a message.'
@@ -930,6 +1092,7 @@ try {
         textLength($message)
         > MAX_MESSAGE_LENGTH
     ) {
+
         jsonResponse([
             'success' => false,
             'message' =>
@@ -939,6 +1102,7 @@ try {
                 ' characters.'
         ], 422);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -960,15 +1124,17 @@ try {
             $visitorUuid
         )
     ) {
+
         $visitorUuid = generateUuid();
 
         $_SESSION['uv_assist_visitor_uuid'] =
             $visitorUuid;
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Visitor Information
+    | Visitor information
     |--------------------------------------------------------------------------
     */
 
@@ -1007,6 +1173,7 @@ try {
             true
         )
     ) {
+
         $userType = 'unknown';
     }
 
@@ -1025,9 +1192,10 @@ try {
         $_SERVER['HTTP_USER_AGENT']
         ?? null;
 
+
     /*
     |--------------------------------------------------------------------------
-    | Find Visitor
+    | FIND VISITOR
     |--------------------------------------------------------------------------
     */
 
@@ -1044,16 +1212,18 @@ try {
 
     $visitorId = $stmt->fetchColumn();
 
+
     /*
     |--------------------------------------------------------------------------
-    | Create / Update Visitor
+    | CREATE VISITOR
     |--------------------------------------------------------------------------
     */
 
     if ($visitorId === false) {
 
         $stmt = $pdo->prepare("
-            INSERT INTO chat_visitors (
+            INSERT INTO chat_visitors
+            (
                 visitor_uuid,
                 name,
                 email,
@@ -1064,7 +1234,8 @@ try {
                 current_page,
                 last_seen_at
             )
-            VALUES (
+            VALUES
+            (
                 :visitor_uuid,
                 :name,
                 :email,
@@ -1113,26 +1284,26 @@ try {
 
         /*
         |--------------------------------------------------------------------------
-        | IMPORTANT:
-        | Use separate placeholders because native PDO prepared statements
-        | do not safely support reusing the same named placeholder.
+        | Separate placeholders
         |--------------------------------------------------------------------------
         */
 
         $stmt = $pdo->prepare("
             UPDATE chat_visitors
             SET
-                name = CASE
-                    WHEN :name_check <> ''
-                    THEN :name_value
-                    ELSE name
-                END,
+                name =
+                    CASE
+                        WHEN :name_check <> ''
+                        THEN :name_value
+                        ELSE name
+                    END,
 
-                email = CASE
-                    WHEN :email_check <> ''
-                    THEN :email_value
-                    ELSE email
-                END,
+                email =
+                    CASE
+                        WHEN :email_check <> ''
+                        THEN :email_value
+                        ELSE email
+                    END,
 
                 user_type = :user_type,
                 session_id = :session_id,
@@ -1152,8 +1323,11 @@ try {
             ':email_value' => $visitorEmail,
 
             ':user_type' => $userType,
+
             ':session_id' => $sessionId,
+
             ':ip_address' => $ipAddress,
+
             ':user_agent' => $userAgent,
 
             ':current_page' =>
@@ -1165,9 +1339,10 @@ try {
         ]);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Detect Intent
+    | DETECT INTENT
     |--------------------------------------------------------------------------
     */
 
@@ -1185,9 +1360,10 @@ try {
         ? (int) $intentData['department_id']
         : null;
 
+
     /*
     |--------------------------------------------------------------------------
-    | Find Active Conversation
+    | FIND ACTIVE CONVERSATION
     |--------------------------------------------------------------------------
     */
 
@@ -1203,7 +1379,8 @@ try {
 
         WHERE visitor_id = ?
 
-        AND status IN (
+        AND status IN
+        (
             'ai_active',
             'escalated',
             'waiting_for_staff',
@@ -1224,9 +1401,10 @@ try {
 
     $conversation = $stmt->fetch();
 
+
     /*
     |--------------------------------------------------------------------------
-    | Create Conversation
+    | CREATE CONVERSATION
     |--------------------------------------------------------------------------
     */
 
@@ -1245,8 +1423,17 @@ try {
                 255
             );
 
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORTANT:
+        | Schema uses source ENUM:
+        | web / admin / api
+        |--------------------------------------------------------------------------
+        */
+
         $stmt = $pdo->prepare("
-            INSERT INTO conversations (
+            INSERT INTO conversations
+            (
                 conversation_uuid,
                 visitor_id,
                 department_id,
@@ -1257,14 +1444,15 @@ try {
                 subject,
                 last_message_at
             )
-            VALUES (
+            VALUES
+            (
                 :conversation_uuid,
                 :visitor_id,
                 :department_id,
                 NULL,
                 'ai_active',
                 'normal',
-                'web_widget',
+                'web',
                 :subject,
                 NOW()
             )
@@ -1290,16 +1478,21 @@ try {
         $conversationStatus =
             'ai_active';
 
+        $conversation = [
+            'id' => $conversationId,
+            'conversation_uuid' => $conversationUuid,
+            'department_id' => $departmentId,
+            'assigned_staff_id' => null,
+            'status' => $conversationStatus,
+        ];
+
         saveAnalyticsEvent(
             $pdo,
             $conversationId,
             'conversation_started',
             [
-                'visitor_id' =>
-                $visitorId,
-
-                'intent' =>
-                $intent,
+                'visitor_id' => $visitorId,
+                'intent' => $intent,
             ]
         );
     } else {
@@ -1315,7 +1508,7 @@ try {
 
         /*
         |--------------------------------------------------------------------------
-        | Set department if conversation has none
+        | Add detected department if conversation doesn't have one
         |--------------------------------------------------------------------------
         */
 
@@ -1340,14 +1533,16 @@ try {
         }
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Save User Message
+    | SAVE USER MESSAGE
     |--------------------------------------------------------------------------
     */
 
     $stmt = $pdo->prepare("
-        INSERT INTO messages (
+        INSERT INTO messages
+        (
             conversation_id,
             sender_type,
             sender_id,
@@ -1358,7 +1553,8 @@ try {
             is_ai_generated,
             is_read
         )
-        VALUES (
+        VALUES
+        (
             :conversation_id,
             'user',
             NULL,
@@ -1385,9 +1581,10 @@ try {
     $userMessageId =
         (int) $pdo->lastInsertId();
 
+
     /*
     |--------------------------------------------------------------------------
-    | Analytics: Message Sent
+    | ANALYTICS: MESSAGE
     |--------------------------------------------------------------------------
     */
 
@@ -1404,9 +1601,10 @@ try {
         ]
     );
 
+
     /*
     |--------------------------------------------------------------------------
-    | Existing Staff Conversation
+    | EXISTING STAFF CONVERSATION
     |--------------------------------------------------------------------------
     */
 
@@ -1451,7 +1649,8 @@ try {
         }
 
         $stmt = $pdo->prepare("
-            INSERT INTO messages (
+            INSERT INTO messages
+            (
                 conversation_id,
                 sender_type,
                 sender_id,
@@ -1462,7 +1661,8 @@ try {
                 is_ai_generated,
                 is_read
             )
-            VALUES (
+            VALUES
+            (
                 :conversation_id,
                 'ai',
                 NULL,
@@ -1531,9 +1731,10 @@ try {
         ]);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Retrieve Knowledge
+    | RETRIEVE FROM DATABASE
     |--------------------------------------------------------------------------
     */
 
@@ -1544,24 +1745,25 @@ try {
             $detectedDepartmentId
         );
 
+
     /*
     |--------------------------------------------------------------------------
-    | Determine Confidence
+    | CONFIDENCE
     |--------------------------------------------------------------------------
     */
 
     $confidence = 0.0;
 
-    if (
-        isset($knowledgeResults[0])
-    ) {
+    if (!empty($knowledgeResults)) {
+
         $confidence =
             (float) $knowledgeResults[0]['similarity_score'];
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Analytics: Knowledge Retrieved
+    | ANALYTICS: KNOWLEDGE RETRIEVED
     |--------------------------------------------------------------------------
     */
 
@@ -1584,9 +1786,13 @@ try {
         ]
     );
 
+
     /*
     |--------------------------------------------------------------------------
     | HIGH CONFIDENCE
+    |--------------------------------------------------------------------------
+    |
+    | ANSWER DIRECTLY FROM DATABASE
     |--------------------------------------------------------------------------
     */
 
@@ -1598,19 +1804,27 @@ try {
         $bestResult =
             $knowledgeResults[0];
 
+        /*
+        |--------------------------------------------------------------------------
+        | Database-grounded answer
+        |--------------------------------------------------------------------------
+        */
+
         $aiResponse =
             buildGroundedResponse(
                 $bestResult
             );
 
+
         /*
         |--------------------------------------------------------------------------
-        | Save AI Message
+        | SAVE AI MESSAGE
         |--------------------------------------------------------------------------
         */
 
         $stmt = $pdo->prepare("
-            INSERT INTO messages (
+            INSERT INTO messages
+            (
                 conversation_id,
                 sender_type,
                 sender_id,
@@ -1621,7 +1835,8 @@ try {
                 is_ai_generated,
                 is_read
             )
-            VALUES (
+            VALUES
+            (
                 :conversation_id,
                 'ai',
                 NULL,
@@ -1651,28 +1866,28 @@ try {
         $aiMessageId =
             (int) $pdo->lastInsertId();
 
+
         /*
         |--------------------------------------------------------------------------
-        | Save Retrieval Results
+        | SAVE RETRIEVAL RESULTS
         |--------------------------------------------------------------------------
         */
 
         $rank = 1;
 
-        foreach (
-            $knowledgeResults
-            as $result
-        ) {
+        foreach ($knowledgeResults as $result) {
 
             $stmt = $pdo->prepare("
-                INSERT INTO retrieval_results (
+                INSERT INTO retrieval_results
+                (
                     message_id,
                     document_id,
                     chunk_id,
                     similarity_score,
                     result_rank
                 )
-                VALUES (
+                VALUES
+                (
                     :message_id,
                     :document_id,
                     :chunk_id,
@@ -1701,9 +1916,10 @@ try {
             $rank++;
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Update Conversation
+        | UPDATE CONVERSATION
         |--------------------------------------------------------------------------
         */
 
@@ -1719,9 +1935,10 @@ try {
             $conversationId
         ]);
 
+
         /*
         |--------------------------------------------------------------------------
-        | Analytics: AI Response
+        | ANALYTICS: AI RESPONSE
         |--------------------------------------------------------------------------
         */
 
@@ -1744,9 +1961,10 @@ try {
             ]
         );
 
+
         /*
         |--------------------------------------------------------------------------
-        | Source
+        | SOURCE INFORMATION
         |--------------------------------------------------------------------------
         */
 
@@ -1775,9 +1993,10 @@ try {
             $confidence,
         ];
 
+
         /*
         |--------------------------------------------------------------------------
-        | Final Response
+        | RETURN DATABASE ANSWER
         |--------------------------------------------------------------------------
         */
 
@@ -1822,9 +2041,10 @@ try {
         ]);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | LOW CONFIDENCE / NO KNOWLEDGE
+    | LOW CONFIDENCE / NO DATABASE ANSWER
     |--------------------------------------------------------------------------
     */
 
@@ -1836,13 +2056,15 @@ try {
         isset($conversation['department_id']) &&
         $conversation['department_id'] !== null
     ) {
+
         $departmentId =
             (int) $conversation['department_id'];
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | Escalation Reason
+    | ESCALATION REASON
     |--------------------------------------------------------------------------
     */
 
@@ -1851,14 +2073,16 @@ try {
         ? 'low_confidence'
         : 'outside_knowledge_base';
 
+
     /*
     |--------------------------------------------------------------------------
-    | Create Escalation
+    | CREATE ESCALATION
     |--------------------------------------------------------------------------
     */
 
     $stmt = $pdo->prepare("
-        INSERT INTO escalations (
+        INSERT INTO escalations
+        (
             conversation_id,
             department_id,
             assigned_staff_id,
@@ -1867,7 +2091,8 @@ try {
             status,
             notes
         )
-        VALUES (
+        VALUES
+        (
             :conversation_id,
             :department_id,
             NULL,
@@ -1892,7 +2117,7 @@ try {
         $confidence,
 
         ':notes' =>
-        'Automatically escalated by UV-ASSIST because the confidence score was below the configured threshold of ' .
+        'Automatically escalated because the retrieved knowledge-base confidence score was below ' .
             CONFIDENCE_THRESHOLD .
             '.',
     ]);
@@ -1900,9 +2125,10 @@ try {
     $escalationId =
         (int) $pdo->lastInsertId();
 
+
     /*
     |--------------------------------------------------------------------------
-    | Update Conversation
+    | UPDATE CONVERSATION
     |--------------------------------------------------------------------------
     */
 
@@ -1916,6 +2142,7 @@ try {
                 ),
 
             status = 'waiting_for_staff',
+
             last_message_at = NOW()
 
         WHERE id = :id
@@ -1929,9 +2156,10 @@ try {
         $conversationId,
     ]);
 
+
     /*
     |--------------------------------------------------------------------------
-    | Build Escalation Message
+    | BUILD ESCALATION MESSAGE
     |--------------------------------------------------------------------------
     */
 
@@ -1944,27 +2172,34 @@ try {
     if ($departmentName) {
 
         $aiResponse =
-            "I'm not confident that I have enough verified information to answer that accurately. " .
+            "I'm not confident that I have enough verified information " .
+            "in the UV-ASSIST knowledge base to answer that accurately.\n\n" .
+
             "I've forwarded your question to the " .
             $departmentName .
             " for assistance. " .
+
             "A University staff member will respond to your conversation.";
     } else {
 
         $aiResponse =
-            "I'm not confident that I have enough verified information to answer that accurately. " .
-            "I've forwarded your question to a University support staff member for assistance. " .
-            "Someone will respond to your conversation.";
+            "I'm not confident that I have enough verified information " .
+            "in the UV-ASSIST knowledge base to answer that accurately.\n\n" .
+
+            "I've forwarded your question to a University support staff member " .
+            "for assistance. Someone will respond to your conversation.";
     }
+
 
     /*
     |--------------------------------------------------------------------------
-    | Save Escalation Message
+    | SAVE ESCALATION MESSAGE
     |--------------------------------------------------------------------------
     */
 
     $stmt = $pdo->prepare("
-        INSERT INTO messages (
+        INSERT INTO messages
+        (
             conversation_id,
             sender_type,
             sender_id,
@@ -1975,7 +2210,8 @@ try {
             is_ai_generated,
             is_read
         )
-        VALUES (
+        VALUES
+        (
             :conversation_id,
             'ai',
             NULL,
@@ -2005,9 +2241,10 @@ try {
     $aiMessageId =
         (int) $pdo->lastInsertId();
 
+
     /*
     |--------------------------------------------------------------------------
-    | Analytics: Escalation
+    | ANALYTICS: ESCALATED
     |--------------------------------------------------------------------------
     */
 
@@ -2036,9 +2273,10 @@ try {
         ]
     );
 
+
     /*
     |--------------------------------------------------------------------------
-    | Final Escalation Response
+    | FINAL RESPONSE
     |--------------------------------------------------------------------------
     */
 
@@ -2085,7 +2323,7 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | Log Full Error
+    | ERROR LOG
     |--------------------------------------------------------------------------
     */
 
@@ -2097,9 +2335,10 @@ try {
             "Trace:\n" . $e->getTraceAsString()
     );
 
+
     /*
     |--------------------------------------------------------------------------
-    | Development Error Response
+    | ERROR RESPONSE
     |--------------------------------------------------------------------------
     */
 
