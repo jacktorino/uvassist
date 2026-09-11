@@ -82,6 +82,7 @@ try {
             session_id(),
             $_SERVER['REQUEST_URI'] ?? '/'
         ]);
+
     } else {
 
         $stmt = $pdo->prepare("
@@ -99,6 +100,7 @@ try {
             $visitorUuid
         ]);
     }
+
 } catch (PDOException $e) {
 
     error_log(
@@ -156,6 +158,7 @@ try {
 
 
     <style>
+
         * {
             box-sizing: border-box;
         }
@@ -186,11 +189,10 @@ try {
         }
 
         .message-animation {
-            animation: messageIn 0.2s ease-out;
+            animation: messageIn 0.25s ease-out;
         }
 
         @keyframes messageIn {
-
             from {
                 opacity: 0;
                 transform: translateY(6px);
@@ -200,21 +202,333 @@ try {
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | BETSY — the UV-Assist campus companion
+        |--------------------------------------------------------------------------
+        |
+        | A single SVG "orb" character, styled after the visual language
+        | of real assistant UIs (Siri / Google Assistant style presence
+        | orbs) so it reads as an intentional interface element rather
+        | than a mascot bolted onto a chatbot. All motion below is
+        | driven by CSS keyframes plus small state classes toggled from
+        | JS; nothing here requires a JS animation loop.
+        |
+        */
+
+        #betsyStage {
+            transition: padding 0.4s ease;
+        }
+
+        .betsy-wrap {
+            animation: betsyFloat 4.5s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        .betsy-svg {
+            display: block;
+            filter: drop-shadow(0 12px 24px rgba(6, 78, 59, 0.25));
+            transition:
+                width 0.4s ease,
+                height 0.4s ease,
+                transform 0.3s ease;
+        }
+
+        .betsy-glow {
+            animation: betsyBreathe 4.5s ease-in-out infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .betsy-body {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: betsyBreathe 4.5s ease-in-out infinite;
+        }
+
+        .betsy-eye {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: betsyBlink 6s ease-in-out infinite;
+            transition: transform 0.2s ease;
+        }
+
+        .betsy-eye-r {
+            animation-delay: -0.15s;
+        }
+
+        .orbit-ring {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: orbitSpin 9s linear infinite;
+        }
+
+        .mouth-flat {
+            display: none;
+        }
+
+        /* Listening: input is focused, Betsy perks up slightly */
+
+        .betsy.state-listening .betsy-svg {
+            transform: rotate(-2deg) scale(1.03);
+        }
+
+        .betsy.state-listening .betsy-eye {
+            animation-play-state: paused;
+            transform: scaleY(1.12);
+        }
+
+        /* Thinking: waiting on a reply */
+
+        .betsy.state-thinking .orbit-ring {
+            animation-duration: 2s;
+        }
+
+        .betsy.state-thinking .betsy-eye {
+            animation-play-state: paused;
+            transform: scaleY(0.35);
+        }
+
+        .betsy.state-thinking .mouth-smile {
+            display: none;
+        }
+
+        .betsy.state-thinking .mouth-flat {
+            display: block;
+        }
+
+        .betsy.state-thinking .betsy-wrap {
+            animation-duration: 1.4s;
+        }
+
+        /* Happy: reply just landed */
+
+        .betsy.state-happy .betsy-wrap {
+            animation: betsyPop 0.5s ease;
+        }
+
+        .betsy-hello {
+            transform-box: fill-box;
+            transform-origin: bottom center;
+        }
+
+        .betsy.greet .betsy-hello {
+            animation: wiggleHello 0.9s ease 1;
+        }
+
+        @keyframes betsyFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes betsyBreathe {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.035);
+            }
+        }
+
+        @keyframes betsyBlink {
+            0%,
+            92%,
+            100% {
+                transform: scaleY(1);
+            }
+
+            96% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        @keyframes orbitSpin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes wiggleHello {
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            20% {
+                transform: rotate(-8deg);
+            }
+
+            40% {
+                transform: rotate(7deg);
+            }
+
+            60% {
+                transform: rotate(-4deg);
+            }
+
+            80% {
+                transform: rotate(2deg);
+            }
+        }
+
+        @keyframes betsyPop {
+            0% {
+                transform: translateY(0) scale(1);
+            }
+
+            35% {
+                transform: translateY(-14px) scale(1.08);
+            }
+
+            100% {
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes bubbleIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .speech-bubble {
+            animation: bubbleIn 0.35s ease-out 0.5s both;
+        }
+
+        /* Mini avatar used next to each Betsy message in the chat thread */
+
+        .mini-betsy {
+            background: radial-gradient(
+                circle at 32% 28%,
+                #6ee7b7,
+                #0f766e 70%
+            );
+
+            box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .mini-betsy .mini-eye {
+            animation: betsyBlink 6s ease-in-out infinite;
+        }
+
+        .think-dot {
+            animation: thinkDot 1.2s ease-in-out infinite;
+        }
+
+        .think-dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .think-dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes thinkDot {
+            0%,
+            80%,
+            100% {
+                transform: scale(0.6);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+
+        /* Landing <-> chat layout states */
+
+        #chatThread {
+            display: none;
+        }
+
+        body.mode-chat #chatThread {
+            display: flex;
+        }
+
+        body.mode-chat #landingCopy {
+            display: none;
+        }
+
+        body.mode-chat #suggestionRow {
+            display: none;
+        }
+
+        body.mode-chat #betsyStage {
+            padding-top: 0.75rem;
+            padding-bottom: 0.25rem;
+        }
+
+        body.mode-chat .betsy-svg {
+            width: 44px;
+            height: 44px;
+        }
+
+        body.mode-chat .speech-bubble {
+            display: none;
+        }
+
+        body.mode-chat #betsyStage {
+            flex-direction: row;
+            justify-content: flex-start;
+            gap: 0.6rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        #betsyStage {
+            flex-direction: column;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .betsy-wrap,
+            .betsy-glow,
+            .betsy-body,
+            .betsy-eye,
+            .orbit-ring,
+            .message-animation,
+            .speech-bubble {
+                animation: none !important;
+            }
 
         }
+
     </style>
 
 </head>
 
 
-<body class="min-h-screen bg-slate-50 text-slate-900">
+<body class="min-h-screen bg-slate-50 text-slate-900 mode-landing">
 
 
     <!--
-|--------------------------------------------------------------------------
-| NAVIGATION
-|--------------------------------------------------------------------------
--->
+    |--------------------------------------------------------------------------
+    | NAVIGATION
+    |--------------------------------------------------------------------------
+    -->
 
     <header class="border-b border-slate-200 bg-white">
 
@@ -225,7 +539,11 @@ try {
 
                 <div
                     class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-900 text-white shadow-sm">
-                    <span class="text-lg font-bold">UV</span>
+
+                    <span class="text-lg font-bold">
+                        UV
+                    </span>
+
                 </div>
 
                 <div>
@@ -265,158 +583,307 @@ try {
 
 
     <!--
-|--------------------------------------------------------------------------
-| HERO
-|--------------------------------------------------------------------------
--->
+    |--------------------------------------------------------------------------
+    | MAIN — Betsy, the chat-first homepage
+    |--------------------------------------------------------------------------
+    -->
 
     <main>
 
-        <section class="relative overflow-hidden bg-white">
+        <section class="bg-white">
 
             <div
-                class="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-2 lg:py-24">
+                id="chatShell"
+                class="mx-auto flex min-h-[calc(100vh-73px)] max-w-3xl flex-col px-6">
 
-                <div>
 
-                    <div
-                        class="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-800">
+                <!--
+                Betsy stage: big + centered while idle,
+                shrinks to a pinned avatar once chatting
+                -->
 
-                        <span
-                            class="h-2 w-2 rounded-full bg-emerald-600"></span>
+                <div
+                    id="betsyStage"
+                    class="flex items-center pt-14">
 
-                        Campus Helpdesk
+                    <div class="relative flex flex-col items-center">
+
+                        <div
+                            class="speech-bubble mb-3 max-w-xs rounded-2xl rounded-bl-md border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-center text-sm font-medium text-emerald-900 shadow-sm">
+
+                            <span id="greetingText">
+                                Hi, I'm Betsy 👋
+                            </span>
+
+                        </div>
+
+
+                        <div class="betsy-wrap">
+
+                            <svg
+                                id="betsy"
+                                class="betsy greet betsy-svg"
+                                width="168"
+                                height="168"
+                                viewBox="0 0 200 200"
+                                role="img"
+                                aria-label="Betsy, the UV-Assist campus companion, idle">
+
+                                <defs>
+
+                                    <radialGradient
+                                        id="orbGradient"
+                                        cx="35%"
+                                        cy="30%"
+                                        r="75%">
+
+                                        <stop
+                                            offset="0%"
+                                            stop-color="#6ee7b7" />
+
+                                        <stop
+                                            offset="55%"
+                                            stop-color="#059669" />
+
+                                        <stop
+                                            offset="100%"
+                                            stop-color="#065f46" />
+
+                                    </radialGradient>
+
+
+                                    <radialGradient
+                                        id="glowGradient"
+                                        cx="50%"
+                                        cy="50%"
+                                        r="50%">
+
+                                        <stop
+                                            offset="0%"
+                                            stop-color="#34d399"
+                                            stop-opacity="0.35" />
+
+                                        <stop
+                                            offset="100%"
+                                            stop-color="#34d399"
+                                            stop-opacity="0" />
+
+                                    </radialGradient>
+
+                                </defs>
+
+
+                                <circle
+                                    class="betsy-glow"
+                                    cx="100"
+                                    cy="100"
+                                    r="92"
+                                    fill="url(#glowGradient)" />
+
+
+                                <g class="orbit-ring">
+
+                                    <circle
+                                        cx="100"
+                                        cy="24"
+                                        r="4"
+                                        fill="#a7f3d0"
+                                        opacity="0.9" />
+
+                                    <circle
+                                        cx="168"
+                                        cy="130"
+                                        r="3"
+                                        fill="#fbbf24"
+                                        opacity="0.8" />
+
+                                    <circle
+                                        cx="34"
+                                        cy="140"
+                                        r="2.5"
+                                        fill="#a7f3d0"
+                                        opacity="0.7" />
+
+                                </g>
+
+
+                                <circle
+                                    class="betsy-body betsy-hello"
+                                    cx="100"
+                                    cy="100"
+                                    r="66"
+                                    fill="url(#orbGradient)" />
+
+
+                                <ellipse
+                                    cx="78"
+                                    cy="72"
+                                    rx="22"
+                                    ry="12"
+                                    fill="#ffffff"
+                                    opacity="0.18" />
+
+
+                                <rect
+                                    class="betsy-eye betsy-eye-l"
+                                    x="72"
+                                    y="92"
+                                    width="15"
+                                    height="20"
+                                    rx="7.5"
+                                    fill="#022c22" />
+
+                                <rect
+                                    class="betsy-eye betsy-eye-r"
+                                    x="113"
+                                    y="92"
+                                    width="15"
+                                    height="20"
+                                    rx="7.5"
+                                    fill="#022c22" />
+
+
+                                <path
+                                    class="mouth-smile"
+                                    d="M 80 128 Q 100 142 120 128"
+                                    stroke="#022c22"
+                                    stroke-width="5"
+                                    stroke-linecap="round"
+                                    fill="none" />
+
+                                <path
+                                    class="mouth-flat"
+                                    d="M 84 132 L 116 132"
+                                    stroke="#022c22"
+                                    stroke-width="5"
+                                    stroke-linecap="round"
+                                    fill="none" />
+
+                            </svg>
+
+                        </div>
 
                     </div>
 
 
-                    <h1
-                        class="heading max-w-2xl text-4xl font-extrabold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+                    <div
+                        class="ml-3 hidden text-sm font-semibold text-emerald-950">
 
-                        Your campus questions,
-                        <span class="text-emerald-800">
-                            answered.
-                        </span>
-
-                    </h1>
-
-
-                    <p
-                        class="mt-6 max-w-xl text-lg leading-8 text-slate-600">
-
-                        UV-Assist is the University of the Visayas intelligent
-                        campus helpdesk. Ask questions about admissions,
-                        enrollment, registrar services, student affairs,
-                        IT support, and other university information.
-
-                    </p>
-
-
-                    <div class="mt-8 flex flex-wrap gap-3">
-
-                        <button
-                            type="button"
-                            onclick="openChat()"
-                            class="rounded-xl bg-emerald-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800">
-                            Start a conversation
-                        </button>
-
-                        <a
-                            href="#features"
-                            class="rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                            Learn more
-                        </a>
+                        Betsy
 
                     </div>
 
                 </div>
 
 
-                <!--
-            |--------------------------------------------------------------------------
-            | HERO CHAT PREVIEW
-            |--------------------------------------------------------------------------
-            -->
+                <div
+                    id="landingCopy"
+                    class="mt-4 text-center">
 
-                <div class="relative">
+                    <h1
+                        class="heading text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+
+                        Ask Betsy anything about campus.
+
+                    </h1>
+
+                    <p
+                        class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600 sm:text-base">
+
+                        Admissions, enrollment, registrar requests, IT support —
+                        Betsy searches the University's knowledge base and
+                        loops in staff when a human's needed.
+
+                    </p>
+
+                </div>
+
+
+                <!--
+                Chat thread
+                Hidden until the first message is sent
+                -->
+
+                <div
+                    id="chatThread"
+                    class="chat-scroll flex-1 flex-col gap-4 overflow-y-auto py-6"
+                    aria-live="polite">
+                </div>
+
+
+                <!-- Composer -->
+
+                <div
+                    id="composerWrap"
+                    class="sticky bottom-0 bg-white pb-8 pt-3">
+
+                    <form
+                        id="chatForm"
+                        class="mx-auto flex max-w-2xl items-end gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-2 shadow-sm transition focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100">
+
+                        <textarea
+                            id="messageInput"
+                            rows="1"
+                            placeholder="Message Betsy…"
+                            aria-label="Message Betsy"
+                            class="max-h-32 min-h-[42px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-slate-400"></textarea>
+
+
+                        <button
+                            type="submit"
+                            id="sendButton"
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-900 text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            aria-label="Send message">
+
+                            ↑
+
+                        </button>
+
+                    </form>
+
 
                     <div
-                        class="mx-auto max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/60">
+                        id="suggestionRow"
+                        class="mx-auto mt-3 flex max-w-2xl flex-wrap justify-center gap-2">
 
-                        <div
-                            class="bg-emerald-950 px-5 py-4 text-white">
+                        <button
+                            type="button"
+                            onclick="useSuggestion('What are the admission requirements?')"
+                            class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
 
-                            <div class="flex items-center gap-3">
+                            Admission requirements
 
-                                <div
-                                    class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                                    💬
-                                </div>
-
-                                <div>
-
-                                    <div class="font-semibold">
-                                        UV-Assist
-                                    </div>
-
-                                    <div class="text-xs text-emerald-200">
-                                        Online helpdesk
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
+                        </button>
 
 
-                        <div class="space-y-4 bg-slate-50 p-5">
+                        <button
+                            type="button"
+                            onclick="useSuggestion('How can I request my transcript?')"
+                            class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
 
-                            <div class="flex justify-start">
+                            Transcript request
 
-                                <div
-                                    class="max-w-[85%] rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    Hello! I'm UV-Assist. How can I help you today?
-                                </div>
-
-                            </div>
+                        </button>
 
 
-                            <div class="flex justify-end">
+                        <button
+                            type="button"
+                            onclick="useSuggestion('How do I contact IT Support?')"
+                            class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
 
-                                <div
-                                    class="max-w-[85%] rounded-2xl rounded-tr-md bg-emerald-900 px-4 py-3 text-sm text-white">
-                                    What are the requirements for enrollment?
-                                </div>
+                            IT Support
 
-                            </div>
-
-
-                            <div class="flex justify-start">
-
-                                <div
-                                    class="max-w-[85%] rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    I can help you find the enrollment requirements
-                                    and direct you to the appropriate University office.
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="border-t border-slate-200 bg-white p-4">
-
-                            <button
-                                type="button"
-                                onclick="openChat()"
-                                class="w-full rounded-xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800">
-                                Ask UV-Assist
-                            </button>
-
-                        </div>
+                        </button>
 
                     </div>
+
+
+                    <p
+                        class="mt-3 text-center text-[11px] text-slate-400">
+
+                        Betsy may escalate questions to University staff when necessary.
+
+                    </p>
 
                 </div>
 
@@ -426,33 +893,41 @@ try {
 
 
         <!--
-    |--------------------------------------------------------------------------
-    | FEATURES
-    |--------------------------------------------------------------------------
-    -->
+        |--------------------------------------------------------------------------
+        | FEATURES
+        |--------------------------------------------------------------------------
+        -->
 
         <section
             id="features"
             class="border-y border-slate-200 bg-slate-50">
 
-            <div class="mx-auto max-w-7xl px-6 py-20">
+            <div
+                class="mx-auto max-w-7xl px-6 py-20">
 
                 <div class="mx-auto max-w-2xl text-center">
 
                     <p
                         class="text-sm font-semibold uppercase tracking-wider text-emerald-800">
+
                         UV-Assist
+
                     </p>
+
 
                     <h2
                         class="heading mt-2 text-3xl font-bold text-slate-950">
+
                         Campus help when you need it
+
                     </h2>
 
-                    <p
-                        class="mt-4 text-slate-600">
+
+                    <p class="mt-4 text-slate-600">
+
                         Get quick access to trusted university information
                         while keeping a path open to human assistance.
+
                     </p>
 
                 </div>
@@ -461,89 +936,102 @@ try {
                 <div
                     class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 
-                    <!-- Card -->
 
                     <div
                         class="rounded-2xl border border-slate-200 bg-white p-6">
 
                         <div
                             class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
                             🔎
+
                         </div>
 
                         <h3 class="heading font-bold">
                             Knowledge Search
                         </h3>
 
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                        <p
+                            class="mt-2 text-sm leading-6 text-slate-600">
+
                             Find relevant information from the University's
                             maintained knowledge base.
+
                         </p>
 
                     </div>
 
-
-                    <!-- Card -->
 
                     <div
                         class="rounded-2xl border border-slate-200 bg-white p-6">
 
                         <div
                             class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
                             🤖
+
                         </div>
 
                         <h3 class="heading font-bold">
                             Intelligent Answers
                         </h3>
 
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
-                            UV-Assist uses intent classification and retrieval
+                        <p
+                            class="mt-2 text-sm leading-6 text-slate-600">
+
+                            Betsy uses intent classification and retrieval
                             to provide grounded responses.
+
                         </p>
 
                     </div>
 
-
-                    <!-- Card -->
 
                     <div
                         class="rounded-2xl border border-slate-200 bg-white p-6">
 
                         <div
                             class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
                             👤
+
                         </div>
 
                         <h3 class="heading font-bold">
                             Human Escalation
                         </h3>
 
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                        <p
+                            class="mt-2 text-sm leading-6 text-slate-600">
+
                             Questions requiring staff assistance can be routed
                             to the appropriate University office.
+
                         </p>
 
                     </div>
 
-
-                    <!-- Card -->
 
                     <div
                         class="rounded-2xl border border-slate-200 bg-white p-6">
 
                         <div
                             class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
                             📚
+
                         </div>
 
                         <h3 class="heading font-bold">
                             Trusted Sources
                         </h3>
 
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                        <p
+                            class="mt-2 text-sm leading-6 text-slate-600">
+
                             Responses can reference the knowledge-base source
                             used to answer the question.
+
                         </p>
 
                     </div>
@@ -556,36 +1044,48 @@ try {
 
 
         <!--
-    |--------------------------------------------------------------------------
-    | HOW IT WORKS
-    |--------------------------------------------------------------------------
-    -->
+        |--------------------------------------------------------------------------
+        | HOW IT WORKS
+        |--------------------------------------------------------------------------
+        -->
 
-        <section id="help" class="bg-white">
+        <section
+            id="help"
+            class="bg-white">
 
-            <div class="mx-auto max-w-7xl px-6 py-20">
+            <div
+                class="mx-auto max-w-7xl px-6 py-20">
 
-                <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
+                <div
+                    class="grid gap-12 lg:grid-cols-2 lg:items-center">
 
                     <div>
 
                         <p
                             class="text-sm font-semibold uppercase tracking-wider text-emerald-800">
+
                             How it works
+
                         </p>
+
 
                         <h2
                             class="heading mt-2 text-3xl font-bold text-slate-950">
+
                             Ask. Retrieve. Respond. Escalate.
+
                         </h2>
+
 
                         <p
                             class="mt-5 leading-7 text-slate-600">
-                            UV-Assist first searches the University's maintained
+
+                            Betsy first searches the University's maintained
                             knowledge base. When the system has sufficient
                             confidence, it provides a grounded response.
                             When confidence is too low or the request requires
                             human assistance, the conversation can be escalated.
+
                         </p>
 
                     </div>
@@ -593,13 +1093,17 @@ try {
 
                     <div class="space-y-4">
 
+
                         <div
                             class="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
 
                             <div
                                 class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-sm font-bold text-white">
+
                                 1
+
                             </div>
+
 
                             <div>
 
@@ -607,9 +1111,12 @@ try {
                                     Ask your question
                                 </h3>
 
-                                <p class="mt-1 text-sm text-slate-600">
-                                    Ask UV-Assist about campus services,
-                                    procedures, requirements, or policies.
+                                <p
+                                    class="mt-1 text-sm text-slate-600">
+
+                                    Ask Betsy about campus services, procedures,
+                                    requirements, or policies.
+
                                 </p>
 
                             </div>
@@ -622,18 +1129,24 @@ try {
 
                             <div
                                 class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-sm font-bold text-white">
+
                                 2
+
                             </div>
+
 
                             <div>
 
                                 <h3 class="font-semibold">
-                                    UV-Assist retrieves information
+                                    Betsy retrieves information
                                 </h3>
 
-                                <p class="mt-1 text-sm text-slate-600">
+                                <p
+                                    class="mt-1 text-sm text-slate-600">
+
                                     The system identifies the user's intent
                                     and retrieves relevant knowledge.
+
                                 </p>
 
                             </div>
@@ -646,8 +1159,11 @@ try {
 
                             <div
                                 class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-sm font-bold text-white">
+
                                 3
+
                             </div>
+
 
                             <div>
 
@@ -655,10 +1171,13 @@ try {
                                     Receive an answer or human assistance
                                 </h3>
 
-                                <p class="mt-1 text-sm text-slate-600">
+                                <p
+                                    class="mt-1 text-sm text-slate-600">
+
                                     High-confidence questions receive an
                                     automated answer. Low-confidence or
                                     complex inquiries can be escalated.
+
                                 </p>
 
                             </div>
@@ -677,12 +1196,13 @@ try {
 
 
     <!--
-|--------------------------------------------------------------------------
-| FOOTER
-|--------------------------------------------------------------------------
--->
+    |--------------------------------------------------------------------------
+    | FOOTER
+    |--------------------------------------------------------------------------
+    -->
 
-    <footer class="border-t border-slate-200 bg-slate-50">
+    <footer
+        class="border-t border-slate-200 bg-slate-50">
 
         <div
             class="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-8 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
@@ -700,212 +1220,186 @@ try {
     </footer>
 
 
-    <!--
-|--------------------------------------------------------------------------
-| CHAT WINDOW
-|--------------------------------------------------------------------------
--->
-
-    <div
-        id="chatOverlay"
-        class="fixed inset-0 z-50 hidden bg-slate-950/30 backdrop-blur-sm">
-
-        <div
-            class="absolute bottom-0 right-0 h-[100dvh] w-full bg-white shadow-2xl sm:bottom-6 sm:right-6 sm:h-[720px] sm:max-h-[calc(100vh-48px)] sm:w-[420px] sm:rounded-3xl">
-
-            <!-- Header -->
-
-            <div
-                class="flex items-center justify-between bg-emerald-950 px-5 py-4 text-white sm:rounded-t-3xl">
-
-                <div class="flex items-center gap-3">
-
-                    <div
-                        class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                        💬
-                    </div>
-
-                    <div>
-
-                        <div class="font-semibold">
-                            UV-Assist
-                        </div>
-
-                        <div class="flex items-center gap-1.5 text-xs text-emerald-200">
-
-                            <span
-                                class="h-2 w-2 rounded-full bg-emerald-400"></span>
-
-                            Campus Helpdesk
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    onclick="closeChat()"
-                    class="rounded-lg p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
-                    aria-label="Close chat">
-                    ✕
-                </button>
-
-            </div>
-
-
-            <!-- Messages -->
-
-            <div
-                id="chatMessages"
-                class="chat-scroll h-[calc(100dvh-145px)] overflow-y-auto bg-slate-50 p-5 sm:h-[560px]">
-
-                <div class="message-animation mb-4 flex justify-start">
-
-                    <div
-                        class="max-w-[85%] rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm">
-
-                        <div>
-                            Hello! 👋 I'm <strong>UV-Assist</strong>,
-                            the University of the Visayas intelligent
-                            campus helpdesk.
-                        </div>
-
-                        <div class="mt-2">
-                            How can I help you today?
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Suggested questions -->
-
-                <div class="mt-5">
-
-                    <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Common questions
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-
-                        <button
-                            type="button"
-                            onclick="useSuggestion('What are the admission requirements?')"
-                            class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
-                            Admission requirements
-                        </button>
-
-                        <button
-                            type="button"
-                            onclick="useSuggestion('How can I request my transcript?')"
-                            class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
-                            Transcript request
-                        </button>
-
-                        <button
-                            type="button"
-                            onclick="useSuggestion('How do I contact IT Support?')"
-                            class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
-                            IT Support
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- Input -->
-
-            <div
-                class="border-t border-slate-200 bg-white p-4 sm:rounded-b-3xl">
-
-                <form
-                    id="chatForm"
-                    class="flex items-end gap-2">
-
-                    <textarea
-                        id="messageInput"
-                        rows="1"
-                        placeholder="Type your question..."
-                        class="max-h-32 min-h-[46px] flex-1 resize-none rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"></textarea>
-
-
-                    <button
-                        type="submit"
-                        id="sendButton"
-                        class="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-emerald-900 text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label="Send message">
-                        ↑
-                    </button>
-
-                </form>
-
-
-                <div class="mt-2 text-center text-[11px] text-slate-400">
-                    UV-Assist may escalate questions to University staff when necessary.
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
     <script>
+
         /*
-|--------------------------------------------------------------------------
-| CHAT UI
-|--------------------------------------------------------------------------
-*/
+        |--------------------------------------------------------------------------
+        | ELEMENTS
+        |--------------------------------------------------------------------------
+        */
 
-        const chatOverlay = document.getElementById('chatOverlay');
+        const betsy =
+            document.getElementById('betsy');
 
-        const chatMessages = document.getElementById('chatMessages');
+        const betsyStage =
+            document.getElementById('betsyStage');
 
-        const messageInput = document.getElementById('messageInput');
+        const greetingText =
+            document.getElementById('greetingText');
 
-        const chatForm = document.getElementById('chatForm');
+        const chatThread =
+            document.getElementById('chatThread');
 
-        const sendButton = document.getElementById('sendButton');
+        const messageInput =
+            document.getElementById('messageInput');
+
+        const chatForm =
+            document.getElementById('chatForm');
+
+        const sendButton =
+            document.getElementById('sendButton');
+
+        let chatStarted = false;
 
 
-        function openChat() {
+        /*
+        |--------------------------------------------------------------------------
+        | TIME-AWARE GREETING
+        |--------------------------------------------------------------------------
+        */
 
-            chatOverlay.classList.remove('hidden');
+        function setGreeting() {
 
-            document.body.classList.add('overflow-hidden');
+            const hour = new Date().getHours();
 
-            setTimeout(() => {
-                messageInput.focus();
-            }, 100);
+            let text = "Hi, I'm Betsy 👋";
+
+            if (hour < 5) {
+
+                text =
+                    "Studying late? I'm Betsy — here if you need anything.";
+
+            } else if (hour < 12) {
+
+                text =
+                    "Good morning! I'm Betsy 👋";
+
+            } else if (hour < 18) {
+
+                text =
+                    "Good afternoon! I'm Betsy 👋";
+
+            } else {
+
+                text =
+                    "Good evening! I'm Betsy 👋";
+
+            }
+
+            greetingText.textContent = text;
+        }
+
+        setGreeting();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | BETSY STATE MACHINE
+        |--------------------------------------------------------------------------
+        */
+
+        function setBetsyState(state) {
+
+            betsy.classList.remove(
+                'state-idle',
+                'state-listening',
+                'state-thinking',
+                'state-happy'
+            );
+
+            betsy.classList.add('state-' + state);
+        }
+
+        setBetsyState('idle');
+
+
+        // Retrigger the little "hello" wiggle once, after the entrance settles.
+
+        setTimeout(() => {
+            betsy.classList.remove('greet');
+        }, 1400);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | EYE TRACKING
+        | Desktop only — Betsy glances toward the cursor
+        |--------------------------------------------------------------------------
+        */
+
+        if (window.matchMedia('(pointer: fine)').matches) {
+
+            let ticking = false;
+
+            window.addEventListener('mousemove', (event) => {
+
+                if (ticking) return;
+
+                ticking = true;
+
+                requestAnimationFrame(() => {
+
+                    const rect =
+                        betsy.getBoundingClientRect();
+
+                    const cx =
+                        rect.left + rect.width / 2;
+
+                    const cy =
+                        rect.top + rect.height / 2;
+
+                    const dx =
+                        Math.max(
+                            -1,
+                            Math.min(
+                                1,
+                                (event.clientX - cx) / 260
+                            )
+                        );
+
+                    const dy =
+                        Math.max(
+                            -1,
+                            Math.min(
+                                1,
+                                (event.clientY - cy) / 260
+                            )
+                        );
+
+                    const eyes =
+                        betsy.querySelectorAll('.betsy-eye');
+
+                    eyes.forEach((eye) => {
+
+                        eye.style.translate =
+                            `${dx * 4}px ${dy * 3}px`;
+
+                    });
+
+                    ticking = false;
+
+                });
+
+            });
 
         }
 
 
-        function closeChat() {
-
-            chatOverlay.classList.add('hidden');
-
-            document.body.classList.remove('overflow-hidden');
-
-        }
-
+        /*
+        |--------------------------------------------------------------------------
+        | SUGGESTIONS
+        |--------------------------------------------------------------------------
+        */
 
         function useSuggestion(message) {
-
-            openChat();
 
             messageInput.value = message;
 
             messageInput.focus();
 
+            messageInput.dispatchEvent(
+                new Event('input')
+            );
         }
 
 
@@ -920,28 +1414,48 @@ try {
             sender = 'user'
         ) {
 
-            const wrapper = document.createElement('div');
+            const wrapper =
+                document.createElement('div');
 
             wrapper.className =
-                'message-animation mb-4 flex ' +
-                (sender === 'user' ?
-                    'justify-end' :
-                    'justify-start');
+                'message-animation flex gap-2 ' +
+                (
+                    sender === 'user'
+                        ? 'justify-end'
+                        : 'justify-start'
+                );
 
 
-            const bubble = document.createElement('div');
+            if (sender === 'ai') {
+
+                const avatar =
+                    document.createElement('div');
+
+                avatar.className =
+                    'mini-betsy relative mt-1 h-7 w-7 shrink-0 rounded-full';
+
+                avatar.innerHTML = `
+                    <span class="mini-eye absolute left-[7px] top-[11px] h-[6px] w-[4px] rounded-full bg-emerald-950"></span>
+                    <span class="mini-eye absolute right-[7px] top-[11px] h-[6px] w-[4px] rounded-full bg-emerald-950"></span>
+                `;
+
+                wrapper.appendChild(avatar);
+            }
+
+
+            const bubble =
+                document.createElement('div');
+
 
             if (sender === 'user') {
 
                 bubble.className =
-                    'max-w-[85%] rounded-2xl rounded-tr-md ' +
-                    'bg-emerald-900 px-4 py-3 text-sm leading-6 text-white';
+                    'max-w-[80%] rounded-2xl rounded-br-md bg-emerald-900 px-4 py-3 text-sm leading-6 text-white';
 
             } else {
 
                 bubble.className =
-                    'max-w-[85%] rounded-2xl rounded-tl-md ' +
-                    'bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm';
+                    'max-w-[80%] rounded-2xl rounded-bl-md bg-white border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm';
 
             }
 
@@ -950,56 +1464,102 @@ try {
 
             wrapper.appendChild(bubble);
 
-            chatMessages.appendChild(wrapper);
+            chatThread.appendChild(wrapper);
 
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-
+            chatThread.scrollTop =
+                chatThread.scrollHeight;
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | TYPING INDICATOR
+        | THINKING INDICATOR
         |--------------------------------------------------------------------------
         */
 
-        function showTyping() {
+        function showThinking() {
 
-            const wrapper = document.createElement('div');
+            const wrapper =
+                document.createElement('div');
 
-            wrapper.id = 'typingIndicator';
+            wrapper.id =
+                'thinkingIndicator';
 
             wrapper.className =
-                'mb-4 flex justify-start';
-
+                'message-animation flex items-end gap-2 justify-start';
 
             wrapper.innerHTML = `
-        <div class="rounded-2xl rounded-tl-md bg-white px-4 py-3 shadow-sm">
-            <div class="flex items-center gap-1">
-                <span class="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce"></span>
-                <span class="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:100ms]"></span>
-                <span class="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:200ms]"></span>
-            </div>
-        </div>
-    `;
+                <div class="mini-betsy relative mt-1 h-7 w-7 shrink-0 rounded-full"></div>
 
-            chatMessages.appendChild(wrapper);
+                <div class="flex items-center gap-1 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 shadow-sm">
 
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+                    <span class="think-dot h-1.5 w-1.5 rounded-full bg-slate-400"></span>
 
+                    <span class="think-dot h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+
+                    <span class="think-dot h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+
+                </div>
+            `;
+
+            chatThread.appendChild(wrapper);
+
+            chatThread.scrollTop =
+                chatThread.scrollHeight;
         }
 
 
-        function removeTyping() {
+        function removeThinking() {
 
-            const typing =
-                document.getElementById('typingIndicator');
+            const el =
+                document.getElementById(
+                    'thinkingIndicator'
+                );
 
-            if (typing) {
-                typing.remove();
+            if (el) {
+                el.remove();
             }
-
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | START CHAT MODE
+        | Landing → conversation, ChatGPT-style
+        |--------------------------------------------------------------------------
+        */
+
+        function enterChatMode() {
+
+            if (chatStarted) return;
+
+            chatStarted = true;
+
+            document.body.classList.remove(
+                'mode-landing'
+            );
+
+            document.body.classList.add(
+                'mode-chat'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LISTENING STATE
+        |--------------------------------------------------------------------------
+        */
+
+        messageInput.addEventListener(
+            'focus',
+            () => setBetsyState('listening')
+        );
+
+        messageInput.addEventListener(
+            'blur',
+            () => setBetsyState('idle')
+        );
 
 
         /*
@@ -1011,23 +1571,21 @@ try {
         |
         |     api/chat.php
         |
-        | We will build that endpoint next.
-        |
         */
 
         chatForm.addEventListener(
             'submit',
-            async function(event) {
+            async function (event) {
 
                 event.preventDefault();
 
                 const message =
                     messageInput.value.trim();
 
-                if (!message) {
-                    return;
-                }
+                if (!message) return;
 
+
+                enterChatMode();
 
                 addMessage(
                     message,
@@ -1037,45 +1595,56 @@ try {
 
                 messageInput.value = '';
 
-                messageInput.style.height = 'auto';
+                messageInput.style.height =
+                    'auto';
 
                 sendButton.disabled = true;
 
-                showTyping();
+                setBetsyState('thinking');
+
+                showThinking();
 
 
                 try {
 
-                    const response = await fetch(
-                        'api/chat.php', {
-                            method: 'POST',
+                    const response =
+                        await fetch(
+                            'api/chat.php',
+                            {
+                                method: 'POST',
 
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
+                                headers: {
+                                    'Content-Type':
+                                        'application/json',
 
-                            body: JSON.stringify({
-                                message: message
-                            })
-                        }
-                    );
+                                    'Accept':
+                                        'application/json'
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        message: message
+                                    })
+                            }
+                        );
 
 
                     const data =
                         await response.json();
 
 
-                    removeTyping();
+                    removeThinking();
 
 
-                    if (!response.ok || !data.success) {
+                    if (
+                        !response.ok ||
+                        !data.success
+                    ) {
 
                         throw new Error(
                             data.message ||
                             'Unable to process your request.'
                         );
-
                     }
 
 
@@ -1084,24 +1653,38 @@ try {
                         'ai'
                     );
 
+                    setBetsyState('happy');
+
+
+                    setTimeout(
+                        () => setBetsyState('idle'),
+                        700
+                    );
+
 
                 } catch (error) {
 
-                    removeTyping();
+                    removeThinking();
+
 
                     addMessage(
                         'Sorry, I am unable to process your request right now. Please try again or request assistance from a University staff member.',
                         'ai'
                     );
 
+
+                    setBetsyState('idle');
+
                     console.error(
                         'UV-Assist error:',
                         error
                     );
 
+
                 } finally {
 
-                    sendButton.disabled = false;
+                    sendButton.disabled =
+                        false;
 
                     messageInput.focus();
 
@@ -1113,15 +1696,16 @@ try {
 
         /*
         |--------------------------------------------------------------------------
-        | TEXTAREA AUTO RESIZE
+        | TEXTAREA AUTO RESIZE + ENTER TO SEND
         |--------------------------------------------------------------------------
         */
 
         messageInput.addEventListener(
             'input',
-            function() {
+            function () {
 
-                this.style.height = 'auto';
+                this.style.height =
+                    'auto';
 
                 this.style.height =
                     Math.min(
@@ -1133,27 +1717,24 @@ try {
         );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | ESC KEY
-        |--------------------------------------------------------------------------
-        */
-
-        document.addEventListener(
+        messageInput.addEventListener(
             'keydown',
-            function(event) {
+            function (event) {
 
                 if (
-                    event.key === 'Escape' &&
-                    !chatOverlay.classList.contains('hidden')
+                    event.key === 'Enter' &&
+                    !event.shiftKey
                 ) {
 
-                    closeChat();
+                    event.preventDefault();
+
+                    chatForm.requestSubmit();
 
                 }
 
             }
         );
+
     </script>
 
 

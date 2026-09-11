@@ -36,10 +36,10 @@ declare(strict_types=1);
 */
 
 define('DB_HOST', 'localhost');
-define('DB_PORT', '3308');
-define('DB_NAME', 'uv_assist');
+define('DB_PORT', '3306');
+define('DB_NAME', 'u724192156_uvassist');
 define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_PASS', 'Testing123!');
 
 
 /*

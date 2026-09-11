@@ -23,8 +23,14 @@ declare(strict_types=1);
 |
 | IMPORTANT:
 | UV-ASSIST DOES NOT INVENT ANSWERS.
-| The knowledge_documents / knowledge_chunks tables are the
-| source of truth.
+|
+| The following tables are the source of truth:
+|
+| departments
+| knowledge_categories
+| knowledge_documents
+| knowledge_chunks
+|
 |--------------------------------------------------------------------------
 */
 
@@ -41,7 +47,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 /*
 |--------------------------------------------------------------------------
-| Configuration
+| CONFIGURATION
 |--------------------------------------------------------------------------
 */
 
@@ -64,7 +70,7 @@ function jsonResponse(array $data, int $status = 200): never
     echo json_encode(
         $data,
         JSON_UNESCAPED_UNICODE |
-            JSON_UNESCAPED_SLASHES
+        JSON_UNESCAPED_SLASHES
     );
 
     exit;
@@ -202,7 +208,9 @@ function tokenize(string $text): array
     */
 
     $stopWords = [
+
         // English
+
         'a',
         'an',
         'and',
@@ -243,6 +251,7 @@ function tokenize(string $text): array
         'your',
 
         // Filipino / Cebuano
+
         'ang',
         'at',
         'ay',
@@ -263,7 +272,7 @@ function tokenize(string $text): array
         'unsa',
         'asa',
         'kanus',
-        'kanus',
+        'kanus-a',
         'pwede',
         'pila',
     ];
@@ -291,7 +300,7 @@ function tokenize(string $text): array
 
 /*
 |--------------------------------------------------------------------------
-| DEPARTMENT
+| DATABASE HELPERS
 |--------------------------------------------------------------------------
 */
 
@@ -299,17 +308,16 @@ function getDepartmentIdByCode(
     PDO $pdo,
     string $code
 ): ?int {
-
     $stmt = $pdo->prepare("
         SELECT id
         FROM departments
-        WHERE code = ?
+        WHERE code = :code
         AND status = 'active'
         LIMIT 1
     ");
 
     $stmt->execute([
-        $code
+        'code' => $code
     ]);
 
     $id = $stmt->fetchColumn();
@@ -326,7 +334,6 @@ function getDepartmentName(
     PDO $pdo,
     ?int $departmentId
 ): ?string {
-
     if ($departmentId === null) {
         return null;
     }
@@ -334,12 +341,12 @@ function getDepartmentName(
     $stmt = $pdo->prepare("
         SELECT name
         FROM departments
-        WHERE id = ?
+        WHERE id = :id
         LIMIT 1
     ");
 
     $stmt->execute([
-        $departmentId
+        'id' => $departmentId
     ]);
 
     $name = $stmt->fetchColumn();
@@ -506,12 +513,6 @@ function detectIntent(
                 continue;
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Exact phrase gets a stronger score.
-            |--------------------------------------------------------------------------
-            */
-
             if (strpos($text, $keyword) !== false) {
 
                 if (str_contains($keyword, ' ')) {
@@ -529,8 +530,10 @@ function detectIntent(
 
     $intent = array_key_first($scores);
 
-    if ($intent === null || $scores[$intent] <= 0) {
-
+    if (
+        $intent === null ||
+        $scores[$intent] <= 0
+    ) {
         return [
             'intent' => 'general_inquiry',
             'department_id' => null,
@@ -545,22 +548,16 @@ function detectIntent(
     */
 
     $departmentCodes = [
+
         'registrar' => 'REG',
+
         'admissions' => 'ADM',
+
         'student_affairs' => 'SAG',
+
         'it_support' => 'IT',
 
-        /*
-        | Enrollment information in our supplied KB belongs primarily
-        | to Registrar.
-        */
-
         'enrollment' => 'REG',
-
-        /*
-        | Tuition currently has no Finance department in the
-        | supplied schema.
-        */
 
         'finance' => null,
 
@@ -573,7 +570,6 @@ function detectIntent(
         isset($departmentCodes[$intent]) &&
         $departmentCodes[$intent] !== null
     ) {
-
         $departmentId = getDepartmentIdByCode(
             $pdo,
             $departmentCodes[$intent]
@@ -607,19 +603,25 @@ function calculateTokenScore(
     }
 
     $titleTokens = tokenize($title);
+
     $contentTokens = tokenize($content);
 
     $titleSet = array_flip($titleTokens);
+
     $contentSet = array_flip($contentTokens);
 
     $matched = 0;
+
     $titleMatches = 0;
 
     foreach ($queryTokens as $token) {
 
         if (isset($titleSet[$token])) {
+
             $matched++;
+
             $titleMatches++;
+
             continue;
         }
 
@@ -666,6 +668,7 @@ function calculateTokenScore(
     $normalizedQuery = normalizeText($query);
 
     $normalizedTitle = normalizeText($title);
+
     $normalizedContent = normalizeText($content);
 
     $phraseBonus = 0.0;
@@ -710,13 +713,13 @@ function calculateTokenScore(
 | SEARCH KNOWLEDGE BASE
 |--------------------------------------------------------------------------
 |
-| THIS IS THE IMPORTANT PART.
-|
-| Answers are retrieved from:
+| Source:
 |
 | knowledge_documents
 |        ↓
 | knowledge_chunks
+|
+| Only published and currently valid documents are considered.
 |
 |--------------------------------------------------------------------------
 */
@@ -729,7 +732,7 @@ function searchKnowledgeBase(
 
     /*
     |--------------------------------------------------------------------------
-    | Get only valid published knowledge.
+    | Get valid published knowledge
     |--------------------------------------------------------------------------
     */
 
@@ -747,7 +750,8 @@ function searchKnowledgeBase(
             kd.source_reference,
             kd.version,
             kd.effective_date,
-            kd.expires_at
+            kd.expires_at,
+            kd.updated_at
 
         FROM knowledge_chunks kc
 
@@ -766,15 +770,17 @@ function searchKnowledgeBase(
             OR kd.expires_at >= CURDATE()
         )
 
-        ORDER BY kd.updated_at DESC,
-                 kc.chunk_index ASC
+        ORDER BY
+            kd.updated_at DESC,
+            kc.chunk_index ASC
 
         LIMIT " . MAX_KNOWLEDGE_ROWS;
 
     $stmt = $pdo->prepare($sql);
+
     $stmt->execute();
 
-    $rows = $stmt->fetchAll();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (!is_array($rows)) {
         return [];
@@ -798,7 +804,7 @@ function searchKnowledgeBase(
 
         /*
         |--------------------------------------------------------------------------
-        | Score the chunk.
+        | Score chunk
         |--------------------------------------------------------------------------
         */
 
@@ -810,8 +816,8 @@ function searchKnowledgeBase(
 
         /*
         |--------------------------------------------------------------------------
-        | If chunk didn't match strongly,
-        | check complete document.
+        | If chunk does not match,
+        | check entire document
         |--------------------------------------------------------------------------
         */
 
@@ -824,7 +830,9 @@ function searchKnowledgeBase(
             );
 
             if ($documentScore > 0) {
-                $score = $documentScore * 0.90;
+
+                $score =
+                    $documentScore * 0.90;
             }
         }
 
@@ -836,8 +844,8 @@ function searchKnowledgeBase(
 
         $rowDepartmentId =
             $row['department_id'] !== null
-            ? (int) $row['department_id']
-            : null;
+                ? (int) $row['department_id']
+                : null;
 
         if (
             $departmentId !== null &&
@@ -845,7 +853,6 @@ function searchKnowledgeBase(
             $rowDepartmentId === $departmentId &&
             $score > 0
         ) {
-
             $score += 0.10;
         }
 
@@ -865,7 +872,7 @@ function searchKnowledgeBase(
 
     /*
     |--------------------------------------------------------------------------
-    | Sort highest relevance first.
+    | Sort highest relevance first
     |--------------------------------------------------------------------------
     */
 
@@ -924,12 +931,11 @@ function buildGroundedResponse(
 
     /*
     |--------------------------------------------------------------------------
-    | IMPORTANT:
-    |
-    | We return the DATABASE CONTENT.
-    |
-    | There is no fabricated answer here.
+    | DATABASE CONTENT IS THE ANSWER
     |--------------------------------------------------------------------------
+    |
+    | No external AI generation occurs here.
+    |
     */
 
     return
@@ -944,6 +950,10 @@ function buildGroundedResponse(
 |--------------------------------------------------------------------------
 | ANALYTICS
 |--------------------------------------------------------------------------
+|
+| Analytics should never prevent UV-ASSIST from answering a question.
+|
+|--------------------------------------------------------------------------
 */
 
 function saveAnalyticsEvent(
@@ -953,36 +963,54 @@ function saveAnalyticsEvent(
     array $metadata = []
 ): void {
 
-    $metadataJson = json_encode(
-        $metadata,
-        JSON_UNESCAPED_UNICODE |
+    try {
+
+        $metadataJson = json_encode(
+            $metadata,
+            JSON_UNESCAPED_UNICODE |
             JSON_UNESCAPED_SLASHES
-    );
+        );
 
-    if ($metadataJson === false) {
-        $metadataJson = '{}';
+        if ($metadataJson === false) {
+            $metadataJson = '{}';
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO analytics_events
+            (
+                conversation_id,
+                event_type,
+                metadata
+            )
+            VALUES
+            (
+                :conversation_id,
+                :event_type,
+                :metadata
+            )
+        ");
+
+        $stmt->execute([
+            'conversation_id' => $conversationId,
+            'event_type' => $eventType,
+            'metadata' => $metadataJson,
+        ]);
+
+    } catch (Throwable $e) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Analytics must NOT break the chatbot.
+        |--------------------------------------------------------------------------
+        */
+
+        error_log(
+            "UV-ASSIST ANALYTICS ERROR\n" .
+            "Message: " . $e->getMessage() . "\n" .
+            "File: " . $e->getFile() . "\n" .
+            "Line: " . $e->getLine()
+        );
     }
-
-    $stmt = $pdo->prepare("
-        INSERT INTO analytics_events
-        (
-            conversation_id,
-            event_type,
-            metadata
-        )
-        VALUES
-        (
-            :conversation_id,
-            :event_type,
-            :metadata
-        )
-    ");
-
-    $stmt->execute([
-        ':conversation_id' => $conversationId,
-        ':event_type' => $eventType,
-        ':metadata' => $metadataJson,
-    ]);
 }
 
 
@@ -996,18 +1024,23 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | Request method
+    | REQUEST METHOD
     |--------------------------------------------------------------------------
     */
 
-    if (
-        ($_SERVER['REQUEST_METHOD'] ?? 'GET')
-        !== 'POST'
-    ) {
+    $requestMethod =
+        strtoupper(
+            (string) (
+                $_SERVER['REQUEST_METHOD'] ?? 'GET'
+            )
+        );
+
+    if ($requestMethod !== 'POST') {
 
         jsonResponse([
             'success' => false,
-            'message' => 'Only POST requests are allowed.'
+            'message' =>
+                'Only POST requests are allowed.'
         ], 405);
     }
 
@@ -1024,14 +1057,14 @@ try {
     ) {
 
         throw new RuntimeException(
-            'PDO connection is not available.'
+            'PDO connection is not available. Check config.php.'
         );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Read JSON
+    | READ JSON REQUEST
     |--------------------------------------------------------------------------
     */
 
@@ -1046,10 +1079,10 @@ try {
 
         jsonResponse([
             'success' => false,
-            'message' => 'Request body is empty.'
+            'message' =>
+                'Request body is empty.'
         ], 400);
     }
-
 
     $input = json_decode(
         $rawInput,
@@ -1063,14 +1096,15 @@ try {
 
         jsonResponse([
             'success' => false,
-            'message' => 'Invalid JSON request.'
+            'message' =>
+                'Invalid JSON request.'
         ], 400);
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Message
+    | MESSAGE
     |--------------------------------------------------------------------------
     */
 
@@ -1084,7 +1118,8 @@ try {
 
         jsonResponse([
             'success' => false,
-            'message' => 'Please enter a message.'
+            'message' =>
+                'Please enter a message.'
         ], 422);
     }
 
@@ -1096,7 +1131,7 @@ try {
         jsonResponse([
             'success' => false,
             'message' =>
-            'Your message is too long. ' .
+                'Your message is too long. ' .
                 'Please limit your message to ' .
                 MAX_MESSAGE_LENGTH .
                 ' characters.'
@@ -1106,7 +1141,7 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | Visitor UUID
+    | VISITOR UUID
     |--------------------------------------------------------------------------
     */
 
@@ -1134,7 +1169,7 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | Visitor information
+    | VISITOR INFORMATION
     |--------------------------------------------------------------------------
     */
 
@@ -1154,7 +1189,8 @@ try {
 
     $userType = trim(
         (string) (
-            $input['user_type'] ?? 'unknown'
+            $input['user_type']
+            ?? 'unknown'
         )
     );
 
@@ -1173,7 +1209,6 @@ try {
             true
         )
     ) {
-
         $userType = 'unknown';
     }
 
@@ -1202,15 +1237,16 @@ try {
     $stmt = $pdo->prepare("
         SELECT id
         FROM chat_visitors
-        WHERE visitor_uuid = ?
+        WHERE visitor_uuid = :visitor_uuid
         LIMIT 1
     ");
 
     $stmt->execute([
-        $visitorUuid
+        'visitor_uuid' => $visitorUuid
     ]);
 
-    $visitorId = $stmt->fetchColumn();
+    $visitorId =
+        $stmt->fetchColumn();
 
 
     /*
@@ -1249,34 +1285,35 @@ try {
         ");
 
         $stmt->execute([
-            ':visitor_uuid' => $visitorUuid,
+            'visitor_uuid' => $visitorUuid,
 
-            ':name' =>
-            $visitorName !== ''
-                ? $visitorName
-                : null,
+            'name' =>
+                $visitorName !== ''
+                    ? $visitorName
+                    : null,
 
-            ':email' =>
-            $visitorEmail !== ''
-                ? $visitorEmail
-                : null,
+            'email' =>
+                $visitorEmail !== ''
+                    ? $visitorEmail
+                    : null,
 
-            ':user_type' => $userType,
+            'user_type' => $userType,
 
-            ':session_id' => $sessionId,
+            'session_id' => $sessionId,
 
-            ':ip_address' => $ipAddress,
+            'ip_address' => $ipAddress,
 
-            ':user_agent' => $userAgent,
+            'user_agent' => $userAgent,
 
-            ':current_page' =>
-            $currentPage !== ''
-                ? $currentPage
-                : null,
+            'current_page' =>
+                $currentPage !== ''
+                    ? $currentPage
+                    : null,
         ]);
 
         $visitorId =
             (int) $pdo->lastInsertId();
+
     } else {
 
         $visitorId =
@@ -1284,7 +1321,7 @@ try {
 
         /*
         |--------------------------------------------------------------------------
-        | Separate placeholders
+        | UPDATE VISITOR
         |--------------------------------------------------------------------------
         */
 
@@ -1306,36 +1343,52 @@ try {
                     END,
 
                 user_type = :user_type,
+
                 session_id = :session_id,
+
                 ip_address = :ip_address,
+
                 user_agent = :user_agent,
+
                 current_page = :current_page,
+
                 last_seen_at = NOW()
 
             WHERE id = :id
         ");
 
         $stmt->execute([
-            ':name_check' => $visitorName,
-            ':name_value' => $visitorName,
+            'name_check' =>
+                $visitorName,
 
-            ':email_check' => $visitorEmail,
-            ':email_value' => $visitorEmail,
+            'name_value' =>
+                $visitorName,
 
-            ':user_type' => $userType,
+            'email_check' =>
+                $visitorEmail,
 
-            ':session_id' => $sessionId,
+            'email_value' =>
+                $visitorEmail,
 
-            ':ip_address' => $ipAddress,
+            'user_type' =>
+                $userType,
 
-            ':user_agent' => $userAgent,
+            'session_id' =>
+                $sessionId,
 
-            ':current_page' =>
-            $currentPage !== ''
-                ? $currentPage
-                : null,
+            'ip_address' =>
+                $ipAddress,
 
-            ':id' => $visitorId,
+            'user_agent' =>
+                $userAgent,
+
+            'current_page' =>
+                $currentPage !== ''
+                    ? $currentPage
+                    : null,
+
+            'id' =>
+                $visitorId,
         ]);
     }
 
@@ -1353,12 +1406,15 @@ try {
         );
 
     $intent =
-        (string) $intentData['intent'];
+        (string) (
+            $intentData['intent']
+            ?? 'general_inquiry'
+        );
 
     $detectedDepartmentId =
         $intentData['department_id'] !== null
-        ? (int) $intentData['department_id']
-        : null;
+            ? (int) $intentData['department_id']
+            : null;
 
 
     /*
@@ -1377,7 +1433,7 @@ try {
 
         FROM conversations
 
-        WHERE visitor_id = ?
+        WHERE visitor_id = :visitor_id
 
         AND status IN
         (
@@ -1396,10 +1452,11 @@ try {
     ");
 
     $stmt->execute([
-        $visitorId
+        'visitor_id' => $visitorId
     ]);
 
-    $conversation = $stmt->fetch();
+    $conversation =
+        $stmt->fetch(PDO::FETCH_ASSOC);
 
 
     /*
@@ -1423,14 +1480,6 @@ try {
                 255
             );
 
-        /*
-        |--------------------------------------------------------------------------
-        | IMPORTANT:
-        | Schema uses source ENUM:
-        | web / admin / api
-        |--------------------------------------------------------------------------
-        */
-
         $stmt = $pdo->prepare("
             INSERT INTO conversations
             (
@@ -1452,24 +1501,24 @@ try {
                 NULL,
                 'ai_active',
                 'normal',
-                'web',
+                'web_page',
                 :subject,
                 NOW()
             )
         ");
 
         $stmt->execute([
-            ':conversation_uuid' =>
-            $conversationUuid,
+            'conversation_uuid' =>
+                $conversationUuid,
 
-            ':visitor_id' =>
-            $visitorId,
+            'visitor_id' =>
+                $visitorId,
 
-            ':department_id' =>
-            $departmentId,
+            'department_id' =>
+                $departmentId,
 
-            ':subject' =>
-            $subject,
+            'subject' =>
+                $subject,
         ]);
 
         $conversationId =
@@ -1479,11 +1528,20 @@ try {
             'ai_active';
 
         $conversation = [
-            'id' => $conversationId,
-            'conversation_uuid' => $conversationUuid,
-            'department_id' => $departmentId,
-            'assigned_staff_id' => null,
-            'status' => $conversationStatus,
+            'id' =>
+                $conversationId,
+
+            'conversation_uuid' =>
+                $conversationUuid,
+
+            'department_id' =>
+                $departmentId,
+
+            'assigned_staff_id' =>
+                null,
+
+            'status' =>
+                $conversationStatus,
         ];
 
         saveAnalyticsEvent(
@@ -1491,24 +1549,34 @@ try {
             $conversationId,
             'conversation_started',
             [
-                'visitor_id' => $visitorId,
-                'intent' => $intent,
+                'visitor_id' =>
+                    $visitorId,
+
+                'intent' =>
+                    $intent,
             ]
         );
+
     } else {
 
         $conversationId =
             (int) $conversation['id'];
 
         $conversationUuid =
-            (string) $conversation['conversation_uuid'];
+            (string) (
+                $conversation['conversation_uuid']
+                ?? ''
+            );
 
         $conversationStatus =
-            (string) $conversation['status'];
+            (string) (
+                $conversation['status']
+                ?? 'ai_active'
+            );
 
         /*
         |--------------------------------------------------------------------------
-        | Add detected department if conversation doesn't have one
+        | Add department when missing
         |--------------------------------------------------------------------------
         */
 
@@ -1519,13 +1587,16 @@ try {
 
             $stmt = $pdo->prepare("
                 UPDATE conversations
-                SET department_id = ?
-                WHERE id = ?
+                SET department_id = :department_id
+                WHERE id = :id
             ");
 
             $stmt->execute([
-                $detectedDepartmentId,
-                $conversationId
+                'department_id' =>
+                    $detectedDepartmentId,
+
+                'id' =>
+                    $conversationId,
             ]);
 
             $conversation['department_id'] =
@@ -1568,14 +1639,14 @@ try {
     ");
 
     $stmt->execute([
-        ':conversation_id' =>
-        $conversationId,
+        'conversation_id' =>
+            $conversationId,
 
-        ':message' =>
-        $message,
+        'message' =>
+            $message,
 
-        ':intent' =>
-        $intent,
+        'intent' =>
+            $intent,
     ]);
 
     $userMessageId =
@@ -1594,10 +1665,10 @@ try {
         'message_sent',
         [
             'message_id' =>
-            $userMessageId,
+                $userMessageId,
 
             'intent' =>
-            $intent,
+                $intent,
         ]
     );
 
@@ -1622,8 +1693,8 @@ try {
 
         $departmentForResponse =
             $conversation['department_id'] !== null
-            ? (int) $conversation['department_id']
-            : $detectedDepartmentId;
+                ? (int) $conversation['department_id']
+                : $detectedDepartmentId;
 
         $departmentName =
             getDepartmentName(
@@ -1639,6 +1710,7 @@ try {
                 $departmentName .
                 " for assistance. " .
                 "A staff member will respond as soon as possible.";
+
         } else {
 
             $staffMessage =
@@ -1647,6 +1719,13 @@ try {
                 "University support office for assistance. " .
                 "A staff member will respond as soon as possible.";
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAVE STAFF WAITING MESSAGE
+        |--------------------------------------------------------------------------
+        */
 
         $stmt = $pdo->prepare("
             INSERT INTO messages
@@ -1676,58 +1755,83 @@ try {
         ");
 
         $stmt->execute([
-            ':conversation_id' =>
-            $conversationId,
+            'conversation_id' =>
+                $conversationId,
 
-            ':message' =>
-            $staffMessage,
+            'message' =>
+                $staffMessage,
 
-            ':intent' =>
-            $intent,
+            'intent' =>
+                $intent,
 
-            ':confidence' =>
-            0.0,
+            'confidence' =>
+                0.0,
         ]);
 
         $aiMessageId =
             (int) $pdo->lastInsertId();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE CONVERSATION
+        |--------------------------------------------------------------------------
+        */
+
         $stmt = $pdo->prepare("
             UPDATE conversations
             SET last_message_at = NOW()
-            WHERE id = ?
+            WHERE id = :id
         ");
 
         $stmt->execute([
-            $conversationId
+            'id' =>
+                $conversationId
         ]);
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE
+        |--------------------------------------------------------------------------
+        */
+
         jsonResponse([
-            'success' => true,
+            'success' =>
+                true,
 
             'conversation_id' =>
-            $conversationId,
+                $conversationId,
 
             'conversation_uuid' =>
-            $conversationUuid,
+                $conversationUuid,
 
             'message_id' =>
-            $aiMessageId,
+                $aiMessageId,
 
             'sender_type' =>
-            'ai',
+                'ai',
 
             'message' =>
-            $staffMessage,
+                $staffMessage,
 
             'confidence' =>
-            0,
+                0,
+
+            'threshold' =>
+                CONFIDENCE_THRESHOLD,
+
+            'intent' =>
+                $intent,
+
+            'department_id' =>
+                $departmentForResponse,
 
             'escalated' =>
-            true,
+                true,
 
             'waiting_for_staff' =>
-            true,
+                true,
         ]);
     }
 
@@ -1757,7 +1861,10 @@ try {
     if (!empty($knowledgeResults)) {
 
         $confidence =
-            (float) $knowledgeResults[0]['similarity_score'];
+            (float) (
+                $knowledgeResults[0]['similarity_score']
+                ?? 0
+            );
     }
 
 
@@ -1773,16 +1880,16 @@ try {
         'knowledge_retrieved',
         [
             'message_id' =>
-            $userMessageId,
+                $userMessageId,
 
             'result_count' =>
-            count($knowledgeResults),
+                count($knowledgeResults),
 
             'top_score' =>
-            $confidence,
+                $confidence,
 
             'intent' =>
-            $intent,
+                $intent,
         ]
     );
 
@@ -1792,7 +1899,8 @@ try {
     | HIGH CONFIDENCE
     |--------------------------------------------------------------------------
     |
-    | ANSWER DIRECTLY FROM DATABASE
+    | Answer directly from the database.
+    |
     |--------------------------------------------------------------------------
     */
 
@@ -1804,9 +1912,10 @@ try {
         $bestResult =
             $knowledgeResults[0];
 
+
         /*
         |--------------------------------------------------------------------------
-        | Database-grounded answer
+        | DATABASE-GROUNDED ANSWER
         |--------------------------------------------------------------------------
         */
 
@@ -1850,17 +1959,17 @@ try {
         ");
 
         $stmt->execute([
-            ':conversation_id' =>
-            $conversationId,
+            'conversation_id' =>
+                $conversationId,
 
-            ':message' =>
-            $aiResponse,
+            'message' =>
+                $aiResponse,
 
-            ':intent' =>
-            $intent,
+            'intent' =>
+                $intent,
 
-            ':confidence' =>
-            $confidence,
+            'confidence' =>
+                $confidence,
         ]);
 
         $aiMessageId =
@@ -1875,43 +1984,71 @@ try {
 
         $rank = 1;
 
-        foreach ($knowledgeResults as $result) {
+        foreach (
+            $knowledgeResults
+            as $result
+        ) {
 
-            $stmt = $pdo->prepare("
-                INSERT INTO retrieval_results
-                (
-                    message_id,
-                    document_id,
-                    chunk_id,
-                    similarity_score,
-                    result_rank
-                )
-                VALUES
-                (
-                    :message_id,
-                    :document_id,
-                    :chunk_id,
-                    :similarity_score,
-                    :result_rank
-                )
-            ");
+            try {
 
-            $stmt->execute([
-                ':message_id' =>
-                $userMessageId,
+                $stmt = $pdo->prepare("
+                    INSERT INTO retrieval_results
+                    (
+                        message_id,
+                        document_id,
+                        chunk_id,
+                        similarity_score,
+                        result_rank
+                    )
+                    VALUES
+                    (
+                        :message_id,
+                        :document_id,
+                        :chunk_id,
+                        :similarity_score,
+                        :result_rank
+                    )
+                ");
 
-                ':document_id' =>
-                (int) $result['document_id'],
+                $stmt->execute([
+                    'message_id' =>
+                        $userMessageId,
 
-                ':chunk_id' =>
-                (int) $result['chunk_id'],
+                    'document_id' =>
+                        (int) (
+                            $result['document_id']
+                            ?? 0
+                        ),
 
-                ':similarity_score' =>
-                (float) $result['similarity_score'],
+                    'chunk_id' =>
+                        (int) (
+                            $result['chunk_id']
+                            ?? 0
+                        ),
 
-                ':result_rank' =>
-                $rank,
-            ]);
+                    'similarity_score' =>
+                        (float) (
+                            $result['similarity_score']
+                            ?? 0
+                        ),
+
+                    'result_rank' =>
+                        $rank,
+                ]);
+
+            } catch (Throwable $e) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Retrieval logging must not prevent the answer.
+                |--------------------------------------------------------------------------
+                */
+
+                error_log(
+                    "UV-ASSIST RETRIEVAL RESULT ERROR\n" .
+                    "Message: " . $e->getMessage()
+                );
+            }
 
             $rank++;
         }
@@ -1928,11 +2065,12 @@ try {
             SET
                 status = 'ai_active',
                 last_message_at = NOW()
-            WHERE id = ?
+            WHERE id = :id
         ");
 
         $stmt->execute([
-            $conversationId
+            'id' =>
+                $conversationId
         ]);
 
 
@@ -1948,16 +2086,16 @@ try {
             'ai_response',
             [
                 'message_id' =>
-                $aiMessageId,
+                    $aiMessageId,
 
                 'user_message_id' =>
-                $userMessageId,
+                    $userMessageId,
 
                 'confidence' =>
-                $confidence,
+                    $confidence,
 
                 'threshold' =>
-                CONFIDENCE_THRESHOLD,
+                    CONFIDENCE_THRESHOLD,
             ]
         );
 
@@ -1969,28 +2107,41 @@ try {
         */
 
         $source = [
+
             'document_id' =>
-            (int) $bestResult['document_id'],
+                (int) (
+                    $bestResult['document_id']
+                    ?? 0
+                ),
 
             'chunk_id' =>
-            (int) $bestResult['chunk_id'],
+                (int) (
+                    $bestResult['chunk_id']
+                    ?? 0
+                ),
 
             'title' =>
-            (string) $bestResult['title'],
+                (string) (
+                    $bestResult['title']
+                    ?? ''
+                ),
 
             'source_type' =>
-            (string) $bestResult['source_type'],
+                (string) (
+                    $bestResult['source_type']
+                    ?? ''
+                ),
 
             'source_reference' =>
-            $bestResult['source_reference']
+                $bestResult['source_reference']
                 ?? null,
 
             'version' =>
-            $bestResult['version']
+                $bestResult['version']
                 ?? null,
 
             'similarity_score' =>
-            $confidence,
+                $confidence,
         ];
 
 
@@ -2001,43 +2152,44 @@ try {
         */
 
         jsonResponse([
-            'success' => true,
+            'success' =>
+                true,
 
             'conversation_id' =>
-            $conversationId,
+                $conversationId,
 
             'conversation_uuid' =>
-            $conversationUuid,
+                $conversationUuid,
 
             'message_id' =>
-            $aiMessageId,
+                $aiMessageId,
 
             'sender_type' =>
-            'ai',
+                'ai',
 
             'message' =>
-            $aiResponse,
+                $aiResponse,
 
             'confidence' =>
-            $confidence,
+                $confidence,
 
             'threshold' =>
-            CONFIDENCE_THRESHOLD,
+                CONFIDENCE_THRESHOLD,
 
             'intent' =>
-            $intent,
+                $intent,
 
             'department_id' =>
-            $detectedDepartmentId,
+                $detectedDepartmentId,
 
             'escalated' =>
-            false,
+                false,
 
             'waiting_for_staff' =>
-            false,
+                false,
 
             'source' =>
-            $source,
+                $source,
         ]);
     }
 
@@ -2070,8 +2222,8 @@ try {
 
     $escalationReason =
         $confidence > 0
-        ? 'low_confidence'
-        : 'outside_knowledge_base';
+            ? 'low_confidence'
+            : 'outside_knowledge_base';
 
 
     /*
@@ -2104,20 +2256,20 @@ try {
     ");
 
     $stmt->execute([
-        ':conversation_id' =>
-        $conversationId,
+        'conversation_id' =>
+            $conversationId,
 
-        ':department_id' =>
-        $departmentId,
+        'department_id' =>
+            $departmentId,
 
-        ':reason' =>
-        $escalationReason,
+        'reason' =>
+            $escalationReason,
 
-        ':confidence_score' =>
-        $confidence,
+        'confidence_score' =>
+            $confidence,
 
-        ':notes' =>
-        'Automatically escalated because the retrieved knowledge-base confidence score was below ' .
+        'notes' =>
+            'Automatically escalated because the retrieved knowledge-base confidence score was below ' .
             CONFIDENCE_THRESHOLD .
             '.',
     ]);
@@ -2141,19 +2293,21 @@ try {
                     department_id
                 ),
 
-            status = 'waiting_for_staff',
+            status =
+                'waiting_for_staff',
 
-            last_message_at = NOW()
+            last_message_at =
+                NOW()
 
         WHERE id = :id
     ");
 
     $stmt->execute([
-        ':department_id' =>
-        $departmentId,
+        'department_id' =>
+            $departmentId,
 
-        ':id' =>
-        $conversationId,
+        'id' =>
+            $conversationId,
     ]);
 
 
@@ -2180,6 +2334,7 @@ try {
             " for assistance. " .
 
             "A University staff member will respond to your conversation.";
+
     } else {
 
         $aiResponse =
@@ -2225,17 +2380,17 @@ try {
     ");
 
     $stmt->execute([
-        ':conversation_id' =>
-        $conversationId,
+        'conversation_id' =>
+            $conversationId,
 
-        ':message' =>
-        $aiResponse,
+        'message' =>
+            $aiResponse,
 
-        ':intent' =>
-        $intent,
+        'intent' =>
+            $intent,
 
-        ':confidence' =>
-        $confidence,
+        'confidence' =>
+            $confidence,
     ]);
 
     $aiMessageId =
@@ -2254,22 +2409,22 @@ try {
         'ai_escalated',
         [
             'escalation_id' =>
-            $escalationId,
+                $escalationId,
 
             'message_id' =>
-            $userMessageId,
+                $userMessageId,
 
             'confidence' =>
-            $confidence,
+                $confidence,
 
             'threshold' =>
-            CONFIDENCE_THRESHOLD,
+                CONFIDENCE_THRESHOLD,
 
             'reason' =>
-            $escalationReason,
+                $escalationReason,
 
             'department_id' =>
-            $departmentId,
+                $departmentId,
         ]
     );
 
@@ -2281,81 +2436,106 @@ try {
     */
 
     jsonResponse([
-        'success' => true,
+        'success' =>
+            true,
 
         'conversation_id' =>
-        $conversationId,
+            $conversationId,
 
         'conversation_uuid' =>
-        $conversationUuid,
+            $conversationUuid,
 
         'message_id' =>
-        $aiMessageId,
+            $aiMessageId,
 
         'sender_type' =>
-        'ai',
+            'ai',
 
         'message' =>
-        $aiResponse,
+            $aiResponse,
 
         'confidence' =>
-        $confidence,
+            $confidence,
 
         'threshold' =>
-        CONFIDENCE_THRESHOLD,
+            CONFIDENCE_THRESHOLD,
 
         'intent' =>
-        $intent,
+            $intent,
 
         'department_id' =>
-        $departmentId,
+            $departmentId,
 
         'escalation_id' =>
-        $escalationId,
+            $escalationId,
 
         'escalated' =>
-        true,
+            true,
 
         'waiting_for_staff' =>
-        true,
+            true,
     ]);
+
+
+/*
+|--------------------------------------------------------------------------
+| ERROR HANDLING
+|--------------------------------------------------------------------------
+*/
+
 } catch (Throwable $e) {
 
     /*
     |--------------------------------------------------------------------------
-    | ERROR LOG
+    | LOG COMPLETE ERROR
     |--------------------------------------------------------------------------
     */
 
     error_log(
         "UV-ASSIST CHAT API ERROR\n" .
-            "Message: " . $e->getMessage() . "\n" .
-            "File: " . $e->getFile() . "\n" .
-            "Line: " . $e->getLine() . "\n" .
-            "Trace:\n" . $e->getTraceAsString()
+        "Message: " . $e->getMessage() . "\n" .
+        "File: " . $e->getFile() . "\n" .
+        "Line: " . $e->getLine() . "\n" .
+        "Trace:\n" . $e->getTraceAsString()
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | ERROR RESPONSE
+    | DEVELOPMENT ERROR RESPONSE
+    |--------------------------------------------------------------------------
+    |
+    | This exposes the actual database/PHP error so we can diagnose
+    | the current 500 error.
+    |
+    | Once the system is working, set DEBUG to false.
     |--------------------------------------------------------------------------
     */
 
-    jsonResponse([
-        'success' => false,
+    $debug = true;
+
+    $response = [
+        'success' =>
+            false,
 
         'message' =>
-        'UV-ASSIST encountered a server error.',
+            'UV-ASSIST encountered a server error.',
+    ];
 
-        'error' =>
-        $e->getMessage(),
+    if ($debug) {
 
-        'file' =>
-        basename($e->getFile()),
+        $response['error'] =
+            $e->getMessage();
 
-        'line' =>
-        $e->getLine(),
+        $response['file'] =
+            basename($e->getFile());
 
-    ], 500);
+        $response['line'] =
+            $e->getLine();
+    }
+
+    jsonResponse(
+        $response,
+        500
+    );
 }
