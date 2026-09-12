@@ -2,113 +2,16 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/config.php';
-
-session_start();
-
-date_default_timezone_set('Asia/Manila');
-
-
 /*
 |--------------------------------------------------------------------------
-| VISITOR SESSION
+| UV-ASSIST — STATIC PROTOTYPE
 |--------------------------------------------------------------------------
-|
-| Every public visitor receives a unique UUID.
-| The visitor does not need to create an account just to use UV-Assist.
-|
-*/
-
-if (!isset($_SESSION['visitor_uuid'])) {
-    $_SESSION['visitor_uuid'] = sprintf(
-        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x%04x',
-        random_int(0, 0xffff),
-        random_int(0, 0xffff),
-        random_int(0, 0xffff),
-        random_int(0, 0x0fff) | 0x4000,
-        random_int(0, 0x3fff) | 0x8000,
-        random_int(0, 0xffff),
-        random_int(0, 0xffff),
-        random_int(0, 0xffff),
-        random_int(0, 0xffff)
-    );
-}
-
-$visitorUuid = $_SESSION['visitor_uuid'];
-
-
-/*
-|--------------------------------------------------------------------------
-| REGISTER / UPDATE VISITOR
+| No database, no session, no api/chat.php. All answers (including form
+| downloads) are matched and served client-side from the KNOWLEDGE_BASE
+| array in the <script> block below. Swap this for the DB-backed version
+| once the real backend is ready.
 |--------------------------------------------------------------------------
 */
-
-try {
-
-    $stmt = $pdo->prepare("
-        SELECT id
-        FROM chat_visitors
-        WHERE visitor_uuid = ?
-        LIMIT 1
-    ");
-
-    $stmt->execute([$visitorUuid]);
-
-    $visitor = $stmt->fetch();
-
-    if (!$visitor) {
-
-        $stmt = $pdo->prepare("
-            INSERT INTO chat_visitors
-            (
-                visitor_uuid,
-                user_type,
-                session_id,
-                current_page,
-                last_seen_at
-            )
-            VALUES
-            (
-                ?,
-                'unknown',
-                ?,
-                ?,
-                NOW()
-            )
-        ");
-
-        $stmt->execute([
-            $visitorUuid,
-            session_id(),
-            $_SERVER['REQUEST_URI'] ?? '/'
-        ]);
-
-    } else {
-
-        $stmt = $pdo->prepare("
-            UPDATE chat_visitors
-            SET
-                session_id = ?,
-                current_page = ?,
-                last_seen_at = NOW()
-            WHERE visitor_uuid = ?
-        ");
-
-        $stmt->execute([
-            session_id(),
-            $_SERVER['REQUEST_URI'] ?? '/',
-            $visitorUuid
-        ]);
-    }
-
-} catch (PDOException $e) {
-
-    error_log(
-        'UV-ASSIST Visitor Error: ' . $e->getMessage()
-    );
-
-    // Do not expose database errors to the visitor.
-}
 
 ?>
 <!DOCTYPE html>
@@ -209,14 +112,6 @@ try {
         |--------------------------------------------------------------------------
         | BETSY — the UV-Assist campus companion
         |--------------------------------------------------------------------------
-        |
-        | A single SVG "orb" character, styled after the visual language
-        | of real assistant UIs (Siri / Google Assistant style presence
-        | orbs) so it reads as an intentional interface element rather
-        | than a mascot bolted onto a chatbot. All motion below is
-        | driven by CSS keyframes plus small state classes toggled from
-        | JS; nothing here requires a JS animation loop.
-        |
         */
 
         #betsyStage {
@@ -270,8 +165,6 @@ try {
             display: none;
         }
 
-        /* Listening: input is focused, Betsy perks up slightly */
-
         .betsy.state-listening .betsy-svg {
             transform: rotate(-2deg) scale(1.03);
         }
@@ -280,8 +173,6 @@ try {
             animation-play-state: paused;
             transform: scaleY(1.12);
         }
-
-        /* Thinking: waiting on a reply */
 
         .betsy.state-thinking .orbit-ring {
             animation-duration: 2s;
@@ -303,8 +194,6 @@ try {
         .betsy.state-thinking .betsy-wrap {
             animation-duration: 1.4s;
         }
-
-        /* Happy: reply just landed */
 
         .betsy.state-happy .betsy-wrap {
             animation: betsyPop 0.5s ease;
@@ -416,8 +305,6 @@ try {
             animation: bubbleIn 0.35s ease-out 0.5s both;
         }
 
-        /* Mini avatar used next to each Betsy message in the chat thread */
-
         .mini-betsy {
             background: radial-gradient(
                 circle at 32% 28%,
@@ -500,6 +387,57 @@ try {
 
         #betsyStage {
             flex-direction: column;
+        }
+
+        /* Form / document reply card */
+
+        .form-card {
+            background: #ffffff;
+            border: 1px solid #a7f3d0;
+            border-radius: 14px;
+            padding: 14px 16px;
+            max-width: 320px;
+            margin-top: 6px;
+        }
+
+        .form-card .form-card-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: #022c22;
+            margin-bottom: 2px;
+        }
+
+        .form-card .form-card-sub {
+            font-size: 11.5px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .form-card ul {
+            margin: 0 0 12px;
+            padding-left: 18px;
+        }
+
+        .form-card li {
+            font-size: 12.5px;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+
+        .form-dl-btn {
+            background: #065f46;
+            color: #ffffff;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .form-dl-btn:hover {
+            background: #054f3d;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -596,11 +534,6 @@ try {
                 id="chatShell"
                 class="mx-auto flex min-h-[calc(100vh-73px)] max-w-3xl flex-col px-6">
 
-
-                <!--
-                Betsy stage: big + centered while idle,
-                shrinks to a pinned avatar once chatting
-                -->
 
                 <div
                     id="betsyStage"
@@ -791,18 +724,13 @@ try {
                         class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600 sm:text-base">
 
                         Admissions, enrollment, registrar requests, IT support —
-                        Betsy searches the University's knowledge base and
-                        loops in staff when a human's needed.
+                        ask Betsy a question or ask for a form, and she'll hand
+                        it to you directly.
 
                     </p>
 
                 </div>
 
-
-                <!--
-                Chat thread
-                Hidden until the first message is sent
-                -->
 
                 <div
                     id="chatThread"
@@ -858,10 +786,10 @@ try {
 
                         <button
                             type="button"
-                            onclick="useSuggestion('How can I request my transcript?')"
+                            onclick="useSuggestion('Can I have the TOR request form?')"
                             class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800">
 
-                            Transcript request
+                            TOR request form
 
                         </button>
 
@@ -881,7 +809,7 @@ try {
                     <p
                         class="mt-3 text-center text-[11px] text-slate-400">
 
-                        Betsy may escalate questions to University staff when necessary.
+                        Prototype build — answers and forms are served from a static knowledge base, not a live backend.
 
                     </p>
 
@@ -968,19 +896,19 @@ try {
                         <div
                             class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
 
-                            🤖
+                            📄
 
                         </div>
 
                         <h3 class="heading font-bold">
-                            Intelligent Answers
+                            Forms &amp; Documents
                         </h3>
 
                         <p
                             class="mt-2 text-sm leading-6 text-slate-600">
 
-                            Betsy uses intent classification and retrieval
-                            to provide grounded responses.
+                            Ask for a form by name and Betsy hands you a
+                            ready-to-fill copy right in the chat.
 
                         </p>
 
@@ -1082,9 +1010,11 @@ try {
 
                             Betsy first searches the University's maintained
                             knowledge base. When the system has sufficient
-                            confidence, it provides a grounded response.
-                            When confidence is too low or the request requires
-                            human assistance, the conversation can be escalated.
+                            confidence, it provides a grounded response —
+                            including handing over a form when that's what
+                            you asked for. When confidence is too low or the
+                            request requires human assistance, the
+                            conversation can be escalated.
 
                         </p>
 
@@ -1115,7 +1045,8 @@ try {
                                     class="mt-1 text-sm text-slate-600">
 
                                     Ask Betsy about campus services, procedures,
-                                    requirements, or policies.
+                                    requirements, policies — or ask for a form
+                                    directly.
 
                                 </p>
 
@@ -1145,7 +1076,8 @@ try {
                                     class="mt-1 text-sm text-slate-600">
 
                                     The system identifies the user's intent
-                                    and retrieves relevant knowledge.
+                                    and retrieves the matching knowledge-base
+                                    entry — answer or downloadable form.
 
                                 </p>
 
@@ -1168,15 +1100,16 @@ try {
                             <div>
 
                                 <h3 class="font-semibold">
-                                    Receive an answer or human assistance
+                                    Receive an answer, a form, or human assistance
                                 </h3>
 
                                 <p
                                     class="mt-1 text-sm text-slate-600">
 
                                     High-confidence questions receive an
-                                    automated answer. Low-confidence or
-                                    complex inquiries can be escalated.
+                                    automated answer or a downloadable form.
+                                    Low-confidence or complex inquiries can be
+                                    escalated.
 
                                 </p>
 
@@ -1224,15 +1157,197 @@ try {
 
         /*
         |--------------------------------------------------------------------------
+        | STATIC KNOWLEDGE BASE
+        |--------------------------------------------------------------------------
+        | Two entry types:
+        |   - "faq"  → answered with plain text
+        |   - "form" → answered with a short blurb + a downloadable form card
+        |
+        | Edit this array to add/change what Betsy can answer or hand out.
+        |--------------------------------------------------------------------------
+        */
+
+        const KNOWLEDGE_BASE = [
+
+            {
+                type: 'faq',
+                title: 'Enrollment Requirements',
+                department: 'Admissions Office',
+                keywords: ['document', 'requirement', 'what do i need', 'admission requirements'],
+                answer: 'For new students: Form 138 (report card), PSA birth certificate, and 2 ID photos. For continuing students: your registration form from the previous semester and a valid UV ID.'
+            },
+            {
+                type: 'form',
+                title: 'New Student Enrollment Form',
+                department: 'Admissions Office',
+                keywords: ['enrollment form', 'new student form', 'admission form', 'application form'],
+                answer: 'Here is the New Student Enrollment Form. Fill it out and bring it, along with your requirements, to the Admissions window.',
+                fields: ['Full Name', 'Date of Birth', 'Previous School', 'Program Applied For', 'Contact Number', 'Email Address', 'Guardian Name']
+            },
+            {
+                type: 'faq',
+                title: 'Admission Process',
+                department: 'Admissions Office',
+                keywords: ['admission', 'apply', 'application', 'applicant', 'entrance exam', 'freshman', 'transferee', 'transfer'],
+                answer: 'Freshman applicants need Form 138, PSA birth certificate, and a passing entrance exam result. Transferees additionally submit a Transcript of Records and an Honorable Dismissal from their previous school.'
+            },
+            {
+                type: 'faq',
+                title: 'Transcript of Records (TOR)',
+                department: 'Registrar',
+                keywords: ['how do i request', 'transcript', 'school records', 'academic record', 'diploma', 'certification', 'good moral', 'honorable dismissal'],
+                answer: "Submit a TOR request at the Registrar's window or through the online request portal. Processing takes 5–7 working days once outstanding balances are cleared."
+            },
+            {
+                type: 'form',
+                title: 'Transcript of Records (TOR) Request Form',
+                department: 'Registrar',
+                keywords: ['tor form', 'tor request form', 'transcript form', 'transcript request'],
+                answer: 'Here is the Transcript of Records Request Form. Complete it and submit at the Registrar window with your official receipt.',
+                fields: ['Full Name', 'Student ID', 'Program', 'Year Graduated / Last Attended', 'Purpose of Request', 'Number of Copies', 'Contact Number']
+            },
+            {
+                type: 'faq',
+                title: 'Enrollment Period',
+                department: 'Registrar',
+                keywords: ['enroll', 'enrollment', 'registration', 'register', 'schedule of enrollment', 'class schedule', 'load', 'add subject', 'drop subject'],
+                answer: "Enrollment for the upcoming semester opens two weeks before the term starts. Continuing students enroll by year level; exact dates are posted on the Registrar's bulletin and the student portal."
+            },
+            {
+                type: 'faq',
+                title: 'Scholarships',
+                department: 'Student Affairs',
+                keywords: ['scholarship', 'stipend', 'financial assistance', 'financial aid', 'discount', 'grant'],
+                answer: "UV offers academic scholarships (President's & Dean's List), athletic grants, and partial working-student discounts. Applications are filed at the Scholarship Office at the start of each school year."
+            },
+            {
+                type: 'form',
+                title: 'Scholarship Application Form',
+                department: 'Student Affairs',
+                keywords: ['scholarship form', 'scholarship application', 'financial aid form'],
+                answer: 'Here is the Scholarship Application Form. Submit it to the Scholarship Office with your latest grades.',
+                fields: ['Full Name', 'Student ID', 'Program & Year Level', 'General Weighted Average', 'Scholarship Type', 'Contact Number', 'Email Address']
+            },
+            {
+                type: 'faq',
+                title: 'Guidance Office',
+                department: 'Student Affairs',
+                keywords: ['guidance', 'counseling', 'counsellor', 'counselor', 'student organization', 'student activity'],
+                answer: 'The Guidance Office is at the Student Affairs building, 2nd floor, open 8am–5pm on weekdays.'
+            },
+            {
+                type: 'faq',
+                title: 'IT / Portal Support',
+                department: 'IT Support',
+                keywords: ['it support', 'technical support', 'wifi', 'wi fi', 'internet', 'password', 'reset password', 'login', 'log in', 'portal', 'student portal', 'account', 'email account', 'cannot access', 'cant access'],
+                answer: "For portal login issues, use the 'Forgot Password' link on the student portal. If that fails, visit the IT Support office at the Admin building, ground floor, with a valid ID."
+            },
+            {
+                type: 'faq',
+                title: 'Tuition & Fees',
+                department: 'Cashier / Finance',
+                keywords: ['tuition', 'fees', 'fee', 'payment', 'cashier', 'assessment', 'balance', 'pay', 'payment deadline'],
+                answer: 'Tuition assessment is generated after enrollment and can be viewed on the student portal. Payments are accepted at the Cashier window or through accredited payment partners; deadlines are posted each semester.'
+            },
+            {
+                type: 'faq',
+                title: 'Attendance Policy',
+                department: 'Registrar',
+                keywords: ['attendance', 'absent', 'late', 'excuse letter'],
+                answer: 'Students who accumulate absences equal to 20% of total class hours in a subject may be dropped, per the Student Handbook. Notify your instructor and file an excuse letter for valid absences.'
+            },
+            {
+                type: 'form',
+                title: 'Course Shifting Form',
+                department: 'Registrar',
+                keywords: ['shifting form', 'shift program form', 'change course form'],
+                answer: 'Here is the Course Shifting Form. Have it signed by your current and target program advisers before submitting to the Registrar.',
+                fields: ['Full Name', 'Student ID', 'Current Program', 'Program To Shift Into', 'Reason For Shifting', "Adviser's Signature"]
+            },
+            {
+                type: 'faq',
+                title: 'Course Shifting',
+                department: 'Registrar',
+                keywords: ['shifting', 'shift program', 'change course'],
+                answer: 'Course shifting requires a signed shifting form from both your current and target program advisers, submitted to the Registrar before the shifting deadline for the term.'
+            },
+            {
+                type: 'faq',
+                title: 'Greeting',
+                department: null,
+                keywords: ['hello', 'hi', 'hey', 'help', 'uv assist', 'university'],
+                answer: "Hi! I'm Betsy, the UV-Assist campus helpdesk. Ask me about admissions, enrollment, registrar requests, scholarships, IT support, campus policies — or ask for a form directly."
+            }
+
+        ];
+
+        const CONFIDENCE_THRESHOLD = 0.45;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | MATCHING
+        |--------------------------------------------------------------------------
+        */
+
+        function normalizeText(text) {
+            return text
+                .toLowerCase()
+                .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function scoreEntry(normalizedMessage, entry) {
+            const keywords = entry.keywords || [];
+            if (!keywords.length) return 0;
+
+            let hits = 0;
+            let weight = 0;
+
+            keywords.forEach(keyword => {
+                const needle = normalizeText(keyword);
+                if (needle && normalizedMessage.includes(needle)) {
+                    hits++;
+                    weight += needle.includes(' ') ? 2 : 1;
+                }
+            });
+
+            if (hits === 0) return 0;
+
+            const score = Math.min(0.99, (weight / Math.max(3, keywords.length)) + (hits > 1 ? 0.15 : 0));
+            return Math.round(score * 10000) / 10000;
+        }
+
+        function findBestMatch(message) {
+            const normalized = normalizeText(message);
+            let best = null;
+            let bestScore = 0;
+
+            KNOWLEDGE_BASE.forEach(entry => {
+                const score = scoreEntry(normalized, entry);
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = entry;
+                }
+            });
+
+            return { entry: best, score: bestScore };
+        }
+
+        function slugify(text) {
+            return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
         | ELEMENTS
         |--------------------------------------------------------------------------
         */
 
         const betsy =
             document.getElementById('betsy');
-
-        const betsyStage =
-            document.getElementById('betsyStage');
 
         const greetingText =
             document.getElementById('greetingText');
@@ -1265,25 +1380,13 @@ try {
             let text = "Hi, I'm Betsy 👋";
 
             if (hour < 5) {
-
-                text =
-                    "Studying late? I'm Betsy — here if you need anything.";
-
+                text = "Studying late? I'm Betsy — here if you need anything.";
             } else if (hour < 12) {
-
-                text =
-                    "Good morning! I'm Betsy 👋";
-
+                text = "Good morning! I'm Betsy 👋";
             } else if (hour < 18) {
-
-                text =
-                    "Good afternoon! I'm Betsy 👋";
-
+                text = "Good afternoon! I'm Betsy 👋";
             } else {
-
-                text =
-                    "Good evening! I'm Betsy 👋";
-
+                text = "Good evening! I'm Betsy 👋";
             }
 
             greetingText.textContent = text;
@@ -1312,9 +1415,6 @@ try {
 
         setBetsyState('idle');
 
-
-        // Retrigger the little "hello" wiggle once, after the entrance settles.
-
         setTimeout(() => {
             betsy.classList.remove('greet');
         }, 1400);
@@ -1323,7 +1423,6 @@ try {
         /*
         |--------------------------------------------------------------------------
         | EYE TRACKING
-        | Desktop only — Betsy glances toward the cursor
         |--------------------------------------------------------------------------
         */
 
@@ -1339,49 +1438,22 @@ try {
 
                 requestAnimationFrame(() => {
 
-                    const rect =
-                        betsy.getBoundingClientRect();
+                    const rect = betsy.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2;
+                    const cy = rect.top + rect.height / 2;
 
-                    const cx =
-                        rect.left + rect.width / 2;
+                    const dx = Math.max(-1, Math.min(1, (event.clientX - cx) / 260));
+                    const dy = Math.max(-1, Math.min(1, (event.clientY - cy) / 260));
 
-                    const cy =
-                        rect.top + rect.height / 2;
-
-                    const dx =
-                        Math.max(
-                            -1,
-                            Math.min(
-                                1,
-                                (event.clientX - cx) / 260
-                            )
-                        );
-
-                    const dy =
-                        Math.max(
-                            -1,
-                            Math.min(
-                                1,
-                                (event.clientY - cy) / 260
-                            )
-                        );
-
-                    const eyes =
-                        betsy.querySelectorAll('.betsy-eye');
+                    const eyes = betsy.querySelectorAll('.betsy-eye');
 
                     eyes.forEach((eye) => {
-
-                        eye.style.translate =
-                            `${dx * 4}px ${dy * 3}px`;
-
+                        eye.style.translate = `${dx * 4}px ${dy * 3}px`;
                     });
 
                     ticking = false;
-
                 });
-
             });
-
         }
 
 
@@ -1392,156 +1464,148 @@ try {
         */
 
         function useSuggestion(message) {
-
             messageInput.value = message;
-
             messageInput.focus();
-
-            messageInput.dispatchEvent(
-                new Event('input')
-            );
+            messageInput.dispatchEvent(new Event('input'));
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | ADD MESSAGE
+        | MESSAGE RENDERING
         |--------------------------------------------------------------------------
         */
 
-        function addMessage(
-            message,
-            sender = 'user'
-        ) {
+        function addMessage(message, sender = 'user') {
 
-            const wrapper =
-                document.createElement('div');
+            const wrapper = document.createElement('div');
 
             wrapper.className =
                 'message-animation flex gap-2 ' +
-                (
-                    sender === 'user'
-                        ? 'justify-end'
-                        : 'justify-start'
-                );
-
+                (sender === 'user' ? 'justify-end' : 'justify-start');
 
             if (sender === 'ai') {
-
-                const avatar =
-                    document.createElement('div');
-
-                avatar.className =
-                    'mini-betsy relative mt-1 h-7 w-7 shrink-0 rounded-full';
-
-                avatar.innerHTML = `
-                    <span class="mini-eye absolute left-[7px] top-[11px] h-[6px] w-[4px] rounded-full bg-emerald-950"></span>
-                    <span class="mini-eye absolute right-[7px] top-[11px] h-[6px] w-[4px] rounded-full bg-emerald-950"></span>
-                `;
-
-                wrapper.appendChild(avatar);
+                wrapper.appendChild(makeMiniAvatar());
             }
 
+            const bubble = document.createElement('div');
 
-            const bubble =
-                document.createElement('div');
-
-
-            if (sender === 'user') {
-
-                bubble.className =
-                    'max-w-[80%] rounded-2xl rounded-br-md bg-emerald-900 px-4 py-3 text-sm leading-6 text-white';
-
-            } else {
-
-                bubble.className =
-                    'max-w-[80%] rounded-2xl rounded-bl-md bg-white border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm';
-
-            }
-
+            bubble.className = sender === 'user'
+                ? 'max-w-[80%] rounded-2xl rounded-br-md bg-emerald-900 px-4 py-3 text-sm leading-6 text-white'
+                : 'max-w-[80%] rounded-2xl rounded-bl-md bg-white border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm whitespace-pre-line';
 
             bubble.textContent = message;
-
             wrapper.appendChild(bubble);
 
             chatThread.appendChild(wrapper);
-
-            chatThread.scrollTop =
-                chatThread.scrollHeight;
+            chatThread.scrollTop = chatThread.scrollHeight;
         }
 
+        function makeMiniAvatar() {
+            const avatar = document.createElement('div');
+            avatar.className = 'mini-betsy relative mt-1 h-7 w-7 shrink-0 rounded-full';
+            avatar.innerHTML = `
+                <span class="mini-eye absolute left-[7px] top-[11px] h-[6px] w-[4px] rounded-full bg-emerald-950"></span>
+                <span class="mini-eye absolute right-[7px] top-[11px] h-[6px] w-[4px] rounded-full bg-emerald-950"></span>
+            `;
+            return avatar;
+        }
 
-        /*
-        |--------------------------------------------------------------------------
-        | THINKING INDICATOR
-        |--------------------------------------------------------------------------
-        */
+        function addFormMessage(entry) {
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-animation flex flex-col gap-2 items-start';
+
+            const row = document.createElement('div');
+            row.className = 'flex gap-2 justify-start w-full';
+            row.appendChild(makeMiniAvatar());
+
+            const bubble = document.createElement('div');
+            bubble.className = 'max-w-[80%] rounded-2xl rounded-bl-md bg-white border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm';
+            bubble.textContent = entry.answer;
+            row.appendChild(bubble);
+            wrapper.appendChild(row);
+
+            const card = document.createElement('div');
+            card.className = 'form-card ml-9';
+            card.innerHTML = `
+                <div class="form-card-title">${entry.title}</div>
+                <div class="form-card-sub">${(entry.fields || []).length} fields to complete</div>
+                <ul>${(entry.fields || []).map(f => `<li>${f}</li>`).join('')}</ul>
+                <button type="button" class="form-dl-btn">⬇ Download form</button>
+            `;
+
+            card.querySelector('.form-dl-btn').addEventListener('click', () => downloadForm(entry));
+
+            wrapper.appendChild(card);
+            chatThread.appendChild(wrapper);
+            chatThread.scrollTop = chatThread.scrollHeight;
+        }
+
+        function downloadForm(entry) {
+
+            const lines = [
+                'UNIVERSITY OF THE VISAYAS',
+                entry.title,
+                '------------------------------------------------',
+                'Instructions: Fill out all fields below and submit to the concerned office.',
+                ''
+            ];
+
+            (entry.fields || []).forEach(f => {
+                lines.push(f + ':  ____________________________________');
+                lines.push('');
+            });
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = slugify(entry.title) + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
 
         function showThinking() {
 
-            const wrapper =
-                document.createElement('div');
-
-            wrapper.id =
-                'thinkingIndicator';
-
-            wrapper.className =
-                'message-animation flex items-end gap-2 justify-start';
+            const wrapper = document.createElement('div');
+            wrapper.id = 'thinkingIndicator';
+            wrapper.className = 'message-animation flex items-end gap-2 justify-start';
 
             wrapper.innerHTML = `
                 <div class="mini-betsy relative mt-1 h-7 w-7 shrink-0 rounded-full"></div>
 
                 <div class="flex items-center gap-1 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 shadow-sm">
-
                     <span class="think-dot h-1.5 w-1.5 rounded-full bg-slate-400"></span>
-
                     <span class="think-dot h-1.5 w-1.5 rounded-full bg-slate-400"></span>
-
                     <span class="think-dot h-1.5 w-1.5 rounded-full bg-slate-400"></span>
-
                 </div>
             `;
 
             chatThread.appendChild(wrapper);
-
-            chatThread.scrollTop =
-                chatThread.scrollHeight;
+            chatThread.scrollTop = chatThread.scrollHeight;
         }
 
-
         function removeThinking() {
-
-            const el =
-                document.getElementById(
-                    'thinkingIndicator'
-                );
-
-            if (el) {
-                el.remove();
-            }
+            const el = document.getElementById('thinkingIndicator');
+            if (el) el.remove();
         }
 
 
         /*
         |--------------------------------------------------------------------------
         | START CHAT MODE
-        | Landing → conversation, ChatGPT-style
         |--------------------------------------------------------------------------
         */
 
         function enterChatMode() {
-
             if (chatStarted) return;
-
             chatStarted = true;
-
-            document.body.classList.remove(
-                'mode-landing'
-            );
-
-            document.body.classList.add(
-                'mode-chat'
-            );
+            document.body.classList.remove('mode-landing');
+            document.body.classList.add('mode-chat');
         }
 
 
@@ -1551,147 +1615,67 @@ try {
         |--------------------------------------------------------------------------
         */
 
-        messageInput.addEventListener(
-            'focus',
-            () => setBetsyState('listening')
-        );
-
-        messageInput.addEventListener(
-            'blur',
-            () => setBetsyState('idle')
-        );
+        messageInput.addEventListener('focus', () => setBetsyState('listening'));
+        messageInput.addEventListener('blur', () => setBetsyState('idle'));
 
 
         /*
         |--------------------------------------------------------------------------
-        | SEND MESSAGE
+        | SEND MESSAGE — fully client-side, static knowledge base
         |--------------------------------------------------------------------------
-        |
-        | This currently connects to:
-        |
-        |     api/chat.php
-        |
         */
 
-        chatForm.addEventListener(
-            'submit',
-            async function (event) {
+        chatForm.addEventListener('submit', function (event) {
 
-                event.preventDefault();
+            event.preventDefault();
 
-                const message =
-                    messageInput.value.trim();
+            const message = messageInput.value.trim();
+            if (!message) return;
 
-                if (!message) return;
+            enterChatMode();
+            addMessage(message, 'user');
 
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
 
-                enterChatMode();
+            sendButton.disabled = true;
+            setBetsyState('thinking');
+            showThinking();
 
-                addMessage(
-                    message,
-                    'user'
-                );
+            setTimeout(() => {
 
+                removeThinking();
 
-                messageInput.value = '';
+                const wantsHuman = /\b(real person|human|staff|agent)\b/i.test(message);
+                const { entry, score } = findBestMatch(message);
 
-                messageInput.style.height =
-                    'auto';
+                if (!wantsHuman && entry && score >= CONFIDENCE_THRESHOLD) {
 
-                sendButton.disabled = true;
-
-                setBetsyState('thinking');
-
-                showThinking();
-
-
-                try {
-
-                    const response =
-                        await fetch(
-                            'api/chat.php',
-                            {
-                                method: 'POST',
-
-                                headers: {
-                                    'Content-Type':
-                                        'application/json',
-
-                                    'Accept':
-                                        'application/json'
-                                },
-
-                                body:
-                                    JSON.stringify({
-                                        message: message
-                                    })
-                            }
-                        );
-
-
-                    const data =
-                        await response.json();
-
-
-                    removeThinking();
-
-
-                    if (
-                        !response.ok ||
-                        !data.success
-                    ) {
-
-                        throw new Error(
-                            data.message ||
-                            'Unable to process your request.'
-                        );
+                    if (entry.type === 'form') {
+                        addFormMessage(entry);
+                    } else {
+                        addMessage(entry.answer, 'ai');
                     }
 
+                } else {
 
-                    addMessage(
-                        data.message,
-                        'ai'
-                    );
+                    const department = entry ? entry.department : null;
 
-                    setBetsyState('happy');
+                    const reply = wantsHuman
+                        ? "Sure — I've forwarded this to " + (department || 'the appropriate University office') + ". A staff member will follow up through your registered student email."
+                        : "I'm not confident I have enough information in the UV-Assist knowledge base to answer that accurately.\n\nI've forwarded your question to " + (department || 'a University support office') + " for assistance.";
 
-
-                    setTimeout(
-                        () => setBetsyState('idle'),
-                        700
-                    );
-
-
-                } catch (error) {
-
-                    removeThinking();
-
-
-                    addMessage(
-                        'Sorry, I am unable to process your request right now. Please try again or request assistance from a University staff member.',
-                        'ai'
-                    );
-
-
-                    setBetsyState('idle');
-
-                    console.error(
-                        'UV-Assist error:',
-                        error
-                    );
-
-
-                } finally {
-
-                    sendButton.disabled =
-                        false;
-
-                    messageInput.focus();
-
+                    addMessage(reply, 'ai');
                 }
 
-            }
-        );
+                setBetsyState('happy');
+                setTimeout(() => setBetsyState('idle'), 700);
+
+                sendButton.disabled = false;
+                messageInput.focus();
+
+            }, 500 + Math.random() * 400);
+        });
 
 
         /*
@@ -1700,40 +1684,17 @@ try {
         |--------------------------------------------------------------------------
         */
 
-        messageInput.addEventListener(
-            'input',
-            function () {
+        messageInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+        });
 
-                this.style.height =
-                    'auto';
-
-                this.style.height =
-                    Math.min(
-                        this.scrollHeight,
-                        128
-                    ) + 'px';
-
+        messageInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                chatForm.requestSubmit();
             }
-        );
-
-
-        messageInput.addEventListener(
-            'keydown',
-            function (event) {
-
-                if (
-                    event.key === 'Enter' &&
-                    !event.shiftKey
-                ) {
-
-                    event.preventDefault();
-
-                    chatForm.requestSubmit();
-
-                }
-
-            }
-        );
+        });
 
     </script>
 
